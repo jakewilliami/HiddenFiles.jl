@@ -4,11 +4,10 @@ export ishidden
 
 if Sys.isunix()
     if Sys.isapple()
-        # https://developer.apple.com/documentation/coreservices/lsiteminfoflags/klsiteminfoisinvisible
-        const KLS_ITEM_INFO_IS_INVISIBLE = 0x00000040
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
-        # https://github.com/python/cpython/blob/16ebae4cd4029205d932751f26c719c6cb8a6e92/Lib/stat.py#L120
+        # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
         const UF_HIDDEN = 0x00008000
+        
         # https://developer.apple.com/documentation/coreservices/lsiteminfoflags
         # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
         const SV_FLAGS_STAT_OFFSET = 0x15  # 21, or 11 if we store results in 64-bits
@@ -19,10 +18,9 @@ if Sys.isunix()
             return statbuf[SV_FLAGS_STAT_OFFSET]
         end
         
-        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) & KLS_ITEM_INFO_IS_INVISIBLE)  # https://stackoverflow.com/a/1140345/12069968
-        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) | UF_HIDDEN)  # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
-        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) & ~UF_HIDDEN)  # https://github.com/dotnet/runtime/issues/25989#issuecomment-446783766
-        _isinvisible(f::AbstractString) = (_sv_flags(f) & UF_HIDDEN) == UF_HIDDEN  # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
+        # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
+        # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
+        _isinvisible(f::AbstractString) = (_sv_flags(f) & UF_HIDDEN) == UF_HIDDEN
         _ishidden(f::AbstractString) = startswith(".", basename(f)) || _isinvisible(f)
     else
         _ishidden(f::AbstractString) = startswith(".", basename(f))
