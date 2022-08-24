@@ -4,13 +4,11 @@ export ishidden
 
 if Sys.isunix()
     if Sys.isapple()
-        error("not yet implemented")
         # https://developer.apple.com/documentation/coreservices/lsiteminfoflags/klsiteminfoisinvisible
         const KLS_ITEM_INFO_IS_INVISIBLE = 0x00000040
-        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html#//apple_ref/doc/man/2/chflags
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
         # https://github.com/python/cpython/blob/16ebae4cd4029205d932751f26c719c6cb8a6e92/Lib/stat.py#L120
         const UF_HIDDEN = 0x00008000
-        # TODO: we need to find a way to get the finder flags, which we can then and as below, or 
         # https://developer.apple.com/documentation/coreservices/lsiteminfoflags
         # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
         const SV_FLAGS_STAT_OFFSET = 0x15  # 21, or 11 if we store results in 64-bits
@@ -20,7 +18,11 @@ if Sys.isunix()
             ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
             return statbuf[SV_FLAGS_STAT_OFFSET]
         end
-        _isinvisible(f::AbstractString) = !iszero(ccall(, UInt16, (Cstring,), f) & KLS_ITEM_INFO_IS_INVISIBLE)
+        
+        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) & KLS_ITEM_INFO_IS_INVISIBLE)  # https://stackoverflow.com/a/1140345/12069968
+        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) | UF_HIDDEN)  # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
+        # _isinvisible(f::AbstractString) = !iszero(_sv_flags(f) & ~UF_HIDDEN)  # https://github.com/dotnet/runtime/issues/25989#issuecomment-446783766
+        _isinvisible(f::AbstractString) = (_sv_flags(f) & UF_HIDDEN) == UF_HIDDEN  # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
         _ishidden(f::AbstractString) = startswith(".", basename(f)) || _isinvisible(f)
     else
         _ishidden(f::AbstractString) = startswith(".", basename(f))
