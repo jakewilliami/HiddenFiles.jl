@@ -11,9 +11,8 @@ if Sys.isunix()
         # https://developer.apple.com/documentation/coreservices/lsiteminfoflags
         # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
         const SV_FLAGS_STAT_OFFSET = 0x15  # 21, or 11 if we store results in 64-bits
-        const STATBUF_SZ = 0x24
         function _sv_flags(f::AbstractString)
-            statbuf = Vector{UInt32}(undef, STATBUF_SZ)
+            statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
             ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
             return statbuf[SV_FLAGS_STAT_OFFSET]
         end
