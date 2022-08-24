@@ -2,8 +2,8 @@ module HiddenFiles
 
 export ishidden
 
-if Sys.isunix()
-    if Sys.isapple()
+@static if Sys.isunix()
+    @static if Sys.isapple()
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
         # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
         const UF_HIDDEN = 0x00008000
