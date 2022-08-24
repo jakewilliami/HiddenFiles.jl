@@ -13,6 +13,13 @@ if Sys.isunix()
         # TODO: we need to find a way to get the finder flags, which we can then and as below, or 
         # https://developer.apple.com/documentation/coreservices/lsiteminfoflags
         # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
+        const SV_FLAGS_STAT_OFFSET = 0x15  # 21, or 11 if we store results in 64-bits
+        const STATBUF_SZ = 0x24
+        function _sv_flags(f::AbstractString)
+            statbuf = Vector{UInt32}(undef, STATBUF_SZ)
+            ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            return statbuf[SV_FLAGS_STAT_OFFSET]
+        end
         _isinvisible(f::AbstractString) = !iszero(ccall(, UInt16, (Cstring,), f) & KLS_ITEM_INFO_IS_INVISIBLE)
         _ishidden(f::AbstractString) = startswith(".", basename(f)) || _isinvisible(f)
     else
