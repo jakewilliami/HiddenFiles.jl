@@ -8,18 +8,19 @@ export ishidden
         # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
         const UF_HIDDEN = 0x00008000
         
-        # https://developer.apple.com/documentation/coreservices/lsiteminfoflags
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fstat.2.html
         # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
-        const SV_FLAGS_STAT_OFFSET = 0x15  # 21, or 11 if we store results in 64-bits
-        function _sv_flags(f::AbstractString)
+        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is 11, or 21 in 32-bit
+        const ST_FLAGS_STAT_OFFSET = 0x15
+        function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
             ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
-            return statbuf[SV_FLAGS_STAT_OFFSET]
+            return statbuf[ST_FLAGS_STAT_OFFSET]
         end
         
         # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
-        _isinvisible(f::AbstractString) = (_sv_flags(f) & UF_HIDDEN) == UF_HIDDEN
+        _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
         _ishidden(f::AbstractString) = startswith(basename(f), '.') || _isinvisible(f)
     else
         _ishidden(f::AbstractString) = startswith(basename(f), '.')
