@@ -3,6 +3,8 @@ module HiddenFiles
 export ishidden
 
 @static if Sys.isunix()
+    _ishidden_unix(f::AbstractString) = startswith(basename(f), '.')
+    
     @static if Sys.isapple()
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
         # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
@@ -21,9 +23,9 @@ export ishidden
         # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
         _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
-        _ishidden(f::AbstractString) = startswith(basename(f), '.') || _isinvisible(f)
+        _ishidden(f::AbstractString) = _ishidden_unix(f) || _isinvisible(f)
     else
-        _ishidden(f::AbstractString) = startswith(basename(f), '.')
+        _ishidden = _ishidden_unix
     end
 elseif Sys.iswindows()
     # https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
