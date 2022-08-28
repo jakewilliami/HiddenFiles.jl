@@ -3,12 +3,7 @@ module HiddenFiles
 export ishidden
 
 @static if Sys.isunix()
-    const DOT_EXCLUSIONS = (".", "..")
-    function _ishidden_unix(f::AbstractString)
-        _basename = basename(f) ∈ DOT_EXCLUSIONS
-        _basename ∈ DOT_EXCLUSIONS && return false
-        return startswith(basename(f), '.')
-   end
+    _ishidden_unix(f::AbstractString) = startswith(basename(realpath(f)), '.')
     
     @static if Sys.isapple()
         ### Hidden Files and Directories: Simplifying the User Experience ###
