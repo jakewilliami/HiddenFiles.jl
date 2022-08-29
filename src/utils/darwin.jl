@@ -35,7 +35,9 @@ end
 
 # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
 function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
-    return ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
+    ptr = ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
+    ptr == C_NULL && error("Cannot copy MD Item attribute $(repr(cfstr_attr_name)); this attribute name might not exist")
+    return ptr
 end
 
 # https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount

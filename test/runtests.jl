@@ -32,9 +32,14 @@ using Test
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test !HiddenFiles._exists_inside_package_or_bundle("/bin/")
                 f = String(rand(Char, 32))  # this path shouldn't exist
-                cfstr = HiddenFiles._cfstring_create_with_cstring(f)
-                @test_throws Exception HiddenFiles._mditem_create(cfstr)
-                @test_throws Exception HiddenFiles._cfstring_create_with_cstring("Julia", 0x1c000101)  # this encoding mode should not exist
+                cfstr_nonexistent = HiddenFiles._cfstring_create_with_cstring(f)
+                @test_throws Exception HiddenFiles._mditem_create(cfstr_nonexistent)
+                encoding_mode_nonexistent = 0x1c000101  # this encoding mode should not exist
+                @test_throws Exception HiddenFiles._cfstring_create_with_cstring("Julia", encoding_mode_nonexistent)
+                cfstr = HiddenFiles._cfstring_create_with_cstring(@__FILE__)
+                mditem = HiddenFiles._mditem_create(cfstr)
+                cfattr_nonexistent = HiddenFiles._cfstring_create_with_cstring("kMDItemNonexistentAttributeName")
+                @test_throws Exception HiddenFiles._mditem_copy_attribute(mditem, cfattr_nonexistent)
             end
         else
             @testset "HiddenFiles.jl—UNIX excluding macOS" begin
