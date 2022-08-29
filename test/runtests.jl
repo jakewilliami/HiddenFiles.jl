@@ -34,6 +34,7 @@ using Test
                 f = String(rand(Char, 32))  # this path shouldn't exist
                 cfstr = HiddenFiles._cfstring_create_with_cstring(f)
                 @test_throws Exception HiddenFiles._mditem_create(cfstr)
+                @test_throws Exception HiddenFiles._cfstring_create_with_cstring("Julia", 0x1c000101)  # this encoding mode should not exist
             end
         else
             @testset "HiddenFiles.jl—UNIX excluding macOS" begin

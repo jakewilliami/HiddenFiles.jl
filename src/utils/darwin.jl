@@ -19,10 +19,11 @@ const K_CF_STRING_ENCODING_UTF8 = UInt32(65001)
 
 # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring        
 function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
-    return ccall(:CFStringCreateWithCString, Cstring, 
-                 (Ptr{Cvoid}, Cstring, UInt32),
-                 C_NULL, s, encoding)
-    # TODO: check if result is null (if so, there was a problem creating the string)
+    cfstr = ccall(:CFStringCreateWithCString, Cstring, 
+                  (Ptr{Cvoid}, Cstring, UInt32),
+                  C_NULL, s, encoding)
+    cfstr == C_NULL && error("Cannot create CF String for $(repr(s)) using encoding $(repr(encoding))")
+    return cfstr
 end
 
 # https://developer.apple.com/documentation/coreservices/1426917-mditemcreate
