@@ -132,19 +132,6 @@ export ishidden
             return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
         end
         
-        # TODO: get these function working
-        mutable struct CFRange
-            length::Int
-            location::Int
-        end
-        function _cfstring_get_characters(cfstr::Cstring, range::CFRange)
-            charbuf = Vector{UInt8}(undef, range.length)
-            ccall(:CFStringGetCharacters, Ptr{UInt32}, (Cstring, Ptr{Cvoid}, Ptr{Cvoid}), cfstr, pointer_from_objref(range), charbuf)
-            return charbuf
-        end
-        # _string_from_cfstring(cfstr::Cstring) = _cfstring_get_characters(cfstr, CFRange(_cfstring_get_length(cfstr), 0))
-        # END TODO
-
         # https://github.com/vovkasm/input-source-switcher/blob/c5bab3de716db5e3dae3703ed3b72f2bf1cd51d3/utils.cpp#L9-L18
         function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             strlen = _cfstring_get_length(cfstr)
