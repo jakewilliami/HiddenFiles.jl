@@ -96,20 +96,6 @@ export ishidden
         function _mditem_create(cstr_f::Cstring)
             return ccall(:MDItemCreate, Ptr{UInt32}, (Ptr{Cvoid}, Cstring), C_NULL, cstr_f)
         end
-        function _mditem_copy_attribute_names(mditem::Ptr{UInt32})
-            mdattrs = Vector{UInt32}(undef, 10000)
-            ccall(:MDItemCopyAttributeNames, Ptr{UInt32}, (Ptr{UInt32}, Ptr{Cvoid}), mditem, mdattrs)
-            return mdattrs
-            # TODO: check if we do indeed need to return mdattrs.  Do we still need mditem?  I don't think so
-            # TODO: check if attributes found (if ccall returns null, failed)
-        end
-        
-        # https://developer.apple.com/documentation/corefoundation/1388741-cfarraycreate
-        function _cfarray_create(arr::Vector{T}) where {T <: Unsigned}
-            return ccall(:CFArrayCreate, Ptr{UInt32}, 
-                         (Ptr{Cvoid}, Ptr{Cvoid}, Int32, Ptr{Cvoid}), 
-                         C_NULL, pointer(arr), length(arr), C_NULL)
-        end
         
         # https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount
         function _cfarray_get_count(cfarr_ptr::Ptr{UInt32})
@@ -142,15 +128,6 @@ export ishidden
         function _cfstring_get_character_at_index(cfstr::Cstring, idx::T) where {T <: Integer}
             return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
         end
-        
-        # TODO: get these dict functions working
-        #=function _cfdictionary_create(keys::Vector{T}, values::Vector{T}) where {T <: Unsigned}
-             return ccall(:CFDictionaryCreate, Ptr{UInt32}, 
-                          (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int32, Ptr{Cvoid}), 
-                          C_NULL, pointer(keys), pointer(values), length(keys), C_NULL)
-        end
-        _cfdictionary_create(D::AbstractDict{T, T}) where {T <: Unsigned} = 
-            _cfdictionary_create(collect(keys(D)) collect(values(D)))=#
         
         # TODO: get these function working
         mutable struct CFRange
@@ -187,20 +164,13 @@ export ishidden
         const K_MDITEM_CONTENT_TYPE_TREE = _cfstring_create_with_cstring("kMDItemContentTypeTree")
         function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
-            
-            
-            cfstr = _cfstring_create_with_cstring("Project.toml")
             mditem = _mditem_create(cfstr)
             mdattrs = _mditem_copy_attribute(mditem, K_MDITEM_CONTENT_TYPE_TREE)
-            # mdattrs = _mditem_copy_attribute_names(mditem)
-            
             # TODO: release/free mditem
-            # attribs = _cfarray_create(mdattrs)
-            # cfarr_len = _cfarray_get_count(attribs)
             cfarr_len = _cfarray_get_count(mdattrs)
             content_types = String[]
-            for cfidx in 1:cfarr_len
-                attr = _cfarray_get_value_at_index(attribs, i)
+            for i in 0:(cfarr_len - 1)
+                attr = _cfarray_get_value_at_index(mdattrs, i)
                 if attr != C_NULL #&& !iszero(_cfstring_get_length(attr))
                     push!(content_types, _string_from_cf_string(attr))
                 end
@@ -211,9 +181,8 @@ export ishidden
         
         # https://stackoverflow.com/a/12233785
         # https://developer.apple.com/documentation/coreservices/kmditemcontenttypetree?changes=lat____2
-        _kmd_item_content_type_tree(f::AbstractString) = _getxattr(f, "com.apple.metadata:_kMDItemContentTypeTree")
         PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
-        _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _kmd_item_content_type_tree(f))
+        _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
         
         
         # TODO: follow every function and ensure I have all correct links
