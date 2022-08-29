@@ -41,9 +41,8 @@ export ishidden
         # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
         const UF_HIDDEN = 0x00008000
         
-        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fstat.2.html
-        # https://opensource.apple.com/source/hfs/hfs-366.1.1/core/hfs_format.h.auto.html
-        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is 11, or 21 in 32-bit
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/lstat.2.html
+        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is at index 11, or 21 in 32-bit
         const ST_FLAGS_STAT_OFFSET = 0x15
         function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
@@ -62,10 +61,7 @@ export ishidden
         # allow apps to implement complex document formats consisting of multiple individual files while still presenting what appears to be a 
         # single document to the user.
         
-        # https://superuser.com/questions/1739420/
-        # https://stackoverflow.com/a/9858910/12069968
         # http://developer.apple.com/library/mac/#documentation/CoreFoundation/Conceptual/CFBundles/Introduction/Introduction.html/
-        # https://opensource.apple.com/source/CF/CF-550/CFBase.c.auto.html
         
         # https://opensource.apple.com/source/CF/CF-635/CFString.h.auto.html
         # https://developer.apple.com/documentation/corefoundation/cfstringbuiltinencodings
@@ -83,10 +79,10 @@ export ishidden
         const K_CFSTRING_ENCODING_UTF32 = 0x0c000100     # kTextEncodingUnicodeDefault + kUnicodeUTF32Format
         const K_CFSTRING_ENCODING_UTF32BE = 0x18000100   # kTextEncodingUnicodeDefault + kUnicodeUTF32BEFormat
         const K_CFSTRING_ENCODING_UTF32LE = 0x1c000100   # kTextEncodingUnicodeDefault + kUnicodeUTF32LEFormat
-        
         # https://opensource.apple.com/source/CF/CF-368/String.subproj/CFStringUtilities.c.auto.html
-        # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring
-        const K_CF_STRING_ENCODING_UTF8 = UInt32(65001)  # THIS DOES NOT SEEM TO WORK
+        const K_CF_STRING_ENCODING_UTF8 = UInt32(65001)
+
+        # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring        
         function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             return ccall(:CFStringCreateWithCString, Cstring, 
                          (Ptr{Cvoid}, Cstring, UInt32),
@@ -94,10 +90,14 @@ export ishidden
             # TODO: check if result is null (if so, there was a problem creating the string)
         end
         
-        # https://github.com/osquery/osquery/blob/598983db97459f858e7a9cc5c731409ffc089b48/osquery/tables/system/darwin/extended_attributes.cpp#L111-L144
-        # https://github.com/objective-see/ProcInfo/blob/ec51090fcf741a9e045dd3e5119cb5cc8750efd3/procInfo/Binary.m#L121-L172
+        # https://developer.apple.com/documentation/coreservices/1426917-mditemcreate
         function _mditem_create(cstr_f::Cstring)
             return ccall(:MDItemCreate, Ptr{UInt32}, (Ptr{Cvoid}, Cstring), C_NULL, cstr_f)
+        end
+        
+        # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
+        function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
+            return ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
         end
         
         # https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount
@@ -120,19 +120,13 @@ export ishidden
              return ccall(:CFStringGetMaximumSizeForEncoding, Int32, (Int32, UInt32), strlen, encoding)
         end
         
-        function _cfstring_get_cstring(cfbuf::Vector{Char}, cfstr::Cstring, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
-            ccall(:CFStringGetCString, Bool,
-                  (Cstring, Ptr{Cvoid}, Int32, UInt32),
-                  cfstr, cfbuf, sizeof(cfbuf), 0) || error("Problem calling CFStringGetCString")
-            return cfbuf
-        end
-        
         # https://developer.apple.com/documentation/corefoundation/1542730-cfstringgetcharacteratindex
         function _cfstring_get_character_at_index(cfstr::Cstring, idx::T) where {T <: Integer}
             return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
         end
         
         # https://github.com/vovkasm/input-source-switcher/blob/c5bab3de716db5e3dae3703ed3b72f2bf1cd51d3/utils.cpp#L9-L18
+        # https://www.tabnine.com/code/java/methods/org.eclipse.swt.internal.webkit.WebKit_win32/CFStringGetCharactersPtr
         function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             strlen = _cfstring_get_length(cfstr)
             maxsz = _cfstring_get_maximum_size_for_encoding(strlen, encoding)
@@ -141,17 +135,16 @@ export ishidden
                 c = _cfstring_get_character_at_index(cfstr, i - 1)
                 print(cfio, c)
             end
-            # _cfstring_get_cstring(cfbuf, cfstr, encoding)  # NOTE: This wasn't working for some reason
-            # return String(cfbuf)
             return String(take!(cfio))
         end
         
-        # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
-        function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
-            return ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
-        end
-        
+        # https://developer.apple.com/documentation/coreservices/kmditemcontenttypetree
         const K_MDITEM_CONTENT_TYPE_TREE = _cfstring_create_with_cstring("kMDItemContentTypeTree")
+        
+        # https://superuser.com/questions/1739420/
+        # https://stackoverflow.com/a/9858910/12069968
+        # https://github.com/osquery/osquery/blob/598983db97459f858e7a9cc5c731409ffc089b48/osquery/tables/system/darwin/extended_attributes.cpp#L111-L144
+        # https://github.com/objective-see/ProcInfo/blob/ec51090fcf741a9e045dd3e5119cb5cc8750efd3/procInfo/Binary.m#L121-L172
         # NOTE: this function will fail if you give it f as "/"
         function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
@@ -171,7 +164,6 @@ export ishidden
         end
         
         # https://stackoverflow.com/a/12233785
-        # https://developer.apple.com/documentation/coreservices/kmditemcontenttypetree?changes=lat____2
         PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
         _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
         
@@ -189,7 +181,6 @@ export ishidden
         end
         
         
-        # TODO: follow every function and ensure I have all correct links
         #=== All cases ===#
         _ishidden(f::AbstractString) = any((_ishidden_unix(f), _isinvisible(f), _exists_inside_package_or_bundle(f)))
     else
