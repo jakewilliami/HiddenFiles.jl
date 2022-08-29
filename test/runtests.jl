@@ -31,6 +31,9 @@ using Test
                 @test !HiddenFiles._ispackage_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test !HiddenFiles._exists_inside_package_or_bundle("/bin/")
+                f = String(rand(Char, 32))  # this path shouldn't exist
+                cfstr = HiddenFiles._cfstring_create_with_cstring(f)
+                @test_throws Exception HiddenFiles._mditem_create(cfstr)
             end
         else
             @testset "HiddenFiles.jl—UNIX excluding macOS" begin

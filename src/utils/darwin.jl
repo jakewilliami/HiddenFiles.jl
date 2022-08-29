@@ -26,8 +26,10 @@ function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = K
 end
 
 # https://developer.apple.com/documentation/coreservices/1426917-mditemcreate
-function _mditem_create(cstr_f::Cstring)
-    return ccall(:MDItemCreate, Ptr{UInt32}, (Ptr{Cvoid}, Cstring), C_NULL, cstr_f)
+function _mditem_create(cfstr_f::Cstring)
+    ptr = ccall(:MDItemCreate, Ptr{UInt32}, (Ptr{Cvoid}, Cstring), C_NULL, cfstr_f)
+    ptr == C_NULL && error("Cannot create MD Item for CF String $(repr(cfstr_f))")
+    return ptr
 end
 
 # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
