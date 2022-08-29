@@ -131,43 +131,86 @@ export ishidden
              return ccall(:CFStringGetMaximumSizeForEncoding, Int32, (Int32, UInt32), strlen, encoding)
         end
         
-        #=function _cfstring_get_c_string(s::AbstractString, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
-            # cfbuf = Vector{UInt32}(undef, 1000)
+        function _cfstring_get_cstring(cfbuf::Vector{Char}, cfstr::Cstring, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             ccall(:CFStringGetCString, Bool,
                   (Cstring, Ptr{Cvoid}, Int32, UInt32),
-                  _cfstring_create_with_cstring(s, encoding), cfbuf, sizeof(cfbuf), 0) || error("Problem calling CFStringGetCString")
+                  cfstr, cfbuf, sizeof(cfbuf), 0) || error("Problem calling CFStringGetCString")
             return cfbuf
-        end=#
+        end
+        
+        # https://developer.apple.com/documentation/corefoundation/1542730-cfstringgetcharacteratindex
+        function _cfstring_get_character_at_index(cfstr::Cstring, idx::T) where {T <: Integer}
+            return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
+        end
+        
+        # TODO: get these dict functions working
+        #=function _cfdictionary_create(keys::Vector{T}, values::Vector{T}) where {T <: Unsigned}
+             return ccall(:CFDictionaryCreate, Ptr{UInt32}, 
+                          (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Int32, Ptr{Cvoid}), 
+                          C_NULL, pointer(keys), pointer(values), length(keys), C_NULL)
+        end
+        _cfdictionary_create(D::AbstractDict{T, T}) where {T <: Unsigned} = 
+            _cfdictionary_create(collect(keys(D)) collect(values(D)))=#
+        
+        # TODO: get these function working
+        mutable struct CFRange
+            length::Int
+            location::Int
+        end
+        function _cfstring_get_characters(cfstr::Cstring, range::CFRange)
+            charbuf = Vector{UInt8}(undef, range.length)
+            ccall(:CFStringGetCharacters, Ptr{UInt32}, (Cstring, Ptr{Cvoid}, Ptr{Cvoid}), cfstr, pointer_from_objref(range), charbuf)
+            return charbuf
+        end
+        # _string_from_cfstring(cfstr::Cstring) = _cfstring_get_characters(cfstr, CFRange(_cfstring_get_length(cfstr), 0))
+        # END TODO
 
         # https://github.com/vovkasm/input-source-switcher/blob/c5bab3de716db5e3dae3703ed3b72f2bf1cd51d3/utils.cpp#L9-L18
         function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             strlen = _cfstring_get_length(cfstr)
             maxsz = _cfstring_get_maximum_size_for_encoding(strlen, encoding)
-            cfbuf = Vector{Char}(undef, maxsz)
-            ccall(:CFStringGetCString, Bool,
-                  (Cstring, Ptr{Cvoid}, Int32, UInt32),
-                  cfstr, cfbuf, sizeof(cfbuf), 0) || error("Problem calling CFStringGetCString")
-            return String(cfbuf)
+            cfio = IOBuffer()
+            for i in 1:maxsz
+                c = _cfstring_get_character_at_index(cfstr, i - 1)
+                print(cfio, c)
+            end
+            # _cfstring_get_cstring(cfbuf, cfstr, encoding)  # NOTE: This wasn't working for some reason
+            # return String(cfbuf)
+            return String(take!(cfio))
         end
         
-        function _mdls(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
+        # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
+        function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
+            return ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
+        end
+        
+        const K_MDITEM_CONTENT_TYPE_TREE = _cfstring_create_with_cstring("kMDItemContentTypeTree")
+        function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
+            
+            
+            cfstr = _cfstring_create_with_cstring("Project.toml")
             mditem = _mditem_create(cfstr)
-            mdattrs = _mditem_copy_attribute_names(mditem)
+            mdattrs = _mditem_copy_attribute(mditem, K_MDITEM_CONTENT_TYPE_TREE)
+            # mdattrs = _mditem_copy_attribute_names(mditem)
+            
             # TODO: release/free mditem
-            attribs = _cfarray_create(mdattrs)
-            cfarr_len = _cfarray_get_count(attribs)
-            mddict = Dict{CString, Cstring}()
+            # attribs = _cfarray_create(mdattrs)
+            # cfarr_len = _cfarray_get_count(attribs)
+            cfarr_len = _cfarray_get_count(mdattrs)
+            content_types = String[]
             for cfidx in 1:cfarr_len
                 attr = _cfarray_get_value_at_index(attribs, i)
-                attr != C_NULL && (mddict[attr] = attr)
+                if attr != C_NULL #&& !iszero(_cfstring_get_length(attr))
+                    push!(content_types, _string_from_cf_string(attr))
+                end
             end
-            return mddict
+            return content_types
             # TODO: release/free mdattrs
         end
         
         # https://stackoverflow.com/a/12233785
-        # https://developer.apple.com/documentation/coreservices/kmditemcontenttypetree?changes=lat____2&language=objc
+        # https://developer.apple.com/documentation/coreservices/kmditemcontenttypetree?changes=lat____2
         _kmd_item_content_type_tree(f::AbstractString) = _getxattr(f, "com.apple.metadata:_kMDItemContentTypeTree")
         PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
         _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _kmd_item_content_type_tree(f))
