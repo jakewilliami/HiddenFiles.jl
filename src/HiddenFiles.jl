@@ -1,9 +1,12 @@
 module HiddenFiles
 
+
 export ishidden
 
+
 @static if Sys.isunix()
-    _ishidden_unix(f::AbstractString) = startswith(basename(realpath(f)), '.')
+    _ishidden_unix(f::AbstractString) = startswith(basename(f), '.')
+    
     
     @static if Sys.isapple()
         ###=== Hidden Files and Directories: Simplifying the User Experience ===##
@@ -162,6 +165,7 @@ export ishidden
         end
         
         const K_MDITEM_CONTENT_TYPE_TREE = _cfstring_create_with_cstring("kMDItemContentTypeTree")
+        # NOTE: this function will fail if you give it f as "/"
         function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
             mditem = _mditem_create(cfstr)
@@ -184,10 +188,23 @@ export ishidden
         PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
         _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
         
+        # If a file or directory exists inside a package or bundle, then it is hidden.  Packages or bundles themselves
+        # are not necessarily hidden.
+        function _exists_inside_package_or_bundle(f::AbstractString)
+            # This assumes that f has already been modified with the realpath function, as if it hasn't,
+            # it is possible that f has a trailing slash, meaning its dirname is still itself
+            f = dirname(f)
+            while f != "/"
+                _ispackage_or_bundle(f) && return true
+                f = dirname(f)
+            end            
+            return false
+        end
+        
         
         # TODO: follow every function and ensure I have all correct links
         #=== All cases ===#
-        _ishidden(f::AbstractString) = any((_ishidden_unix(f), _isinvisible(f), _ispackage_or_bundle(f)))
+        _ishidden(f::AbstractString) = any((_ishidden_unix(f), _isinvisible(f), _exists_inside_package_or_bundle(f)))
     else
         _ishidden = _ishidden_unix
     end
@@ -203,7 +220,11 @@ else
     _ishidden(f::AbstractString) = error("hidden files for this OS need to be defined")
 end
 
-ishidden(f::AbstractString) = ispath(f) && _ishidden(f)
+
+# Each OS branch defines its own _ishidden function.  In the main ishidden function, we check that the path exists, expand
+# the real path out, and apply the branch's _ishidden function to that path to get a final result
+ishidden(f::AbstractString) = ispath(f) && _ishidden(realpath(f))
+
 
 end
 
