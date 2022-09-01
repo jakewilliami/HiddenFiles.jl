@@ -14,7 +14,6 @@ const K_CF_STRING_ENCODING_UTF16LE         = 0x14000100  # kTextEncodingUnicodeD
 const K_CF_STRING_ENCODING_UTF32           = 0x0c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32Format
 const K_CF_STRING_ENCODING_UTF32BE         = 0x18000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32BEFormat
 const K_CF_STRING_ENCODING_UTF32LE         = 0x1c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32LEFormat
-const K_CF_STRING_ENCODING_UTF8            = 0x08000100  # https://opensource.apple.com/source/CF/CF-368/String.subproj/CFStringUtilities.c.auto.html
 
 # This will be out main/default string encoding
 const CF_STRING_ENCODING = K_CF_STRING_ENCODING_MAC_ROMAN # K_CF_STRING_ENCODING_UTF8 or UTF16 doesn't seem to work
