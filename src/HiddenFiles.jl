@@ -71,7 +71,7 @@ export ishidden
         # https://github.com/osquery/osquery/blob/598983db97459f858e7a9cc5c731409ffc089b48/osquery/tables/system/darwin/extended_attributes.cpp#L111-L144
         # https://github.com/objective-see/ProcInfo/blob/ec51090fcf741a9e045dd3e5119cb5cc8750efd3/procInfo/Binary.m#L121-L172
         # NOTE: this function will fail if you give it f as "/"
-        function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = K_CFSTRING_ENCODING_MACROMAN)
+        function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING)
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
             mditem = _mditem_create(cfstr)
             mdattrs = _mditem_copy_attribute(mditem, K_MDITEM_CONTENT_TYPE_TREE)
@@ -81,7 +81,7 @@ export ishidden
             for i in 0:(cfarr_len - 1)
                 attr = _cfarray_get_value_at_index(mdattrs, i)
                 if attr != C_NULL #&& !iszero(_cfstring_get_length(attr))
-                    push!(content_types, _string_from_cf_string(attr))
+                    push!(content_types, _string_from_cf_string(attr, str_encoding))
                 end
             end
             return content_types
