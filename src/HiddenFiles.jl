@@ -114,10 +114,13 @@ export ishidden
 elseif Sys.iswindows()
     # https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
     # https://github.com/SublimeText/Pywin32/blob/753322f9ac4b943c2c04ddd88605e68bc742dbb4/lib/x32/win32/lib/win32con.py#L2128-L2129
+    # https://github.com/retep998/winapi-rs/blob/5b1829956ef645f3c2f8236ba18bb198ca4c2468/src/um/winnt.rs#L4081-L4082
     const FILE_ATTRIBUTE_HIDDEN = 0x2
     const FILE_ATTRIBUTE_SYSTEM = 0x4
     
-    ## https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
+    # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
+    # https://stackoverflow.com/a/1343643/12069968
+    # https://stackoverflow.com/a/14063074/12069968
     _ishidden(f::AbstractString) = !iszero(ccall(:GetFileAttributesA, UInt32, (Cstring,), f) & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM))
 else
     _ishidden(f::AbstractString) = error("hidden files for this OS need to be defined")
