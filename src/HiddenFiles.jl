@@ -7,8 +7,34 @@ export ishidden
 @static if Sys.isunix()
     _ishidden_unix(f::AbstractString) = startswith(basename(f), '.')
     
+    @static if Sys.isapple() || Sys.isbsd()  # BDS-related
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
+        # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
+        const UF_HIDDEN = 0x00008000
+        
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/lstat.2.html
+        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is at index 11, or 21 in 32-bit
+        const ST_FLAGS_STAT_OFFSET = 0x15
+        function _st_flags(f::AbstractString)
+            statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
+            ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            return statbuf[ST_FLAGS_STAT_OFFSET]
+        end
+        
+        # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
+        # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
+        _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
+        
+        _ishidden_bsd_related(f::AbstractString) = _ishidden_unix(f) || _isinvisible(f)
+    end
     
-    @static if Sys.isapple()
+    include("utils/zfs.jl")
+    if iszfs()  # @static breaks here
+        error("not yet implemented")
+        _ishidden_zfs(f::AbstractString) = error("not yet implemented")
+    end
+    
+    @static if Sys.isapple()  # macOS/Darwin
         include("utils/darwin.jl")
         
         ###=== Hidden Files and Directories: Simplifying the User Experience ===##
@@ -31,30 +57,14 @@ export ishidden
         #   - `/tmp`—Contains temporary files created by apps and the system.
         #   - `/usr`—Contains non-essential command-line binaries, libraries, header files, and other data.
         #   - `/var`—Contains log files and other files whose content is variable. (Log files are typically viewed using the Console app.)
+        # TODO
         
         
         #=== Case 3: Explicitly hidden files and directories ===#
         # The Finder may hide specific files or directories that should not be accessed directly by the user.  The most notable example of 
         # this is the /Volumes directory, which contains a subdirectory for each mounted disk in the local file system from the command line. 
         # (The Finder provides a different user interface for accessing local disks.)  In macOS 10.7 and later, the Finder also hides the
-        # `~/Library` directory—that is, the `Library` directory located in the user’s home directory.
-        
-        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
-        # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
-        const UF_HIDDEN = 0x00008000
-        
-        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/lstat.2.html
-        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is at index 11, or 21 in 32-bit
-        const ST_FLAGS_STAT_OFFSET = 0x15
-        function _st_flags(f::AbstractString)
-            statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-            ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
-            return statbuf[ST_FLAGS_STAT_OFFSET]
-        end
-        
-        # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
-        # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
-        _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
+        # `~/Library` directory—that is, the `Library` directory located in the user’s home directory.  This case is handled by `_isinvisible`.
         
         
         #=== Case 4: Packages and bundles ===#
@@ -108,10 +118,12 @@ export ishidden
         end
         
         
-        #=== All cases ===#
-        _ishidden(f::AbstractString) = any((_ishidden_unix(f), _isinvisible(f), _exists_inside_package_or_bundle(f)))
-    else
-        _ishidden = _ishidden_unix
+        #=== All macOS cases ===#
+        _ishidden(f::AbstractString) = _ishidden_bsd_related(f) || _exists_inside_package_or_bundle(f)
+    elseif Sys.isbsd()  # BSD
+        _hidden(f::AbstractString) = _ishidden_bsd_related(f) || (iszfs() && _ishidden_zfs(f))
+    else  # General UNIX
+        _ishidden(f::AbstractString) = _ishidden_unix(f) || (iszfs() && _ishidden_zfs(f))
     end
 elseif Sys.iswindows()
     # https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
@@ -137,5 +149,5 @@ function ishidden(f::AbstractString)
 end
 
 
-end
+end  # end module
 
