@@ -17,7 +17,8 @@ export ishidden
         const ST_FLAGS_STAT_OFFSET = 0x15
         function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-            ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            i = ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
             return statbuf[ST_FLAGS_STAT_OFFSET]
         end
         
