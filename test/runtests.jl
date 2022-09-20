@@ -12,7 +12,7 @@ using Test
         
         @testset "HiddenFiles.jl—General UNIX" begin
             @test ishidden(p)
-            @test !ishidden("$(homedir())/Desktop")
+            @test !ishidden(homedir())
             @test_throws Base.IOError HiddenFiles.ishidden("~/$(basename(p′))")
             @test HiddenFiles.ishidden(expanduser("~/$(basename(p′))"))
         end
@@ -21,7 +21,7 @@ using Test
             @testset "HiddenFiles.jl—macOS" begin
                 # Case 1: Dot directories and files
                 @test ishidden(p)
-                @test !ishidden("$(homedir())/Desktop")
+                @test !ishidden(homedir())
                 
                 # Case 2: UNIX-specific directories
                 # TODO: complete this case
@@ -59,7 +59,7 @@ using Test
                 @test !HiddenFiles._isinvisible(p)
                 @test ishidden(p′)
                 @test !HiddenFiles._isinvisible(p′)
-                @test !ishidden("$(homedir())/Desktop")
+                @test !ishidden(homedir())
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
                 @test !ishidden("/usr/")
@@ -72,7 +72,7 @@ using Test
                 @test !HiddenFiles._isinvisible(p)
                 @test ishidden(p′)
                 @test !HiddenFiles._isinvisible(p′)
-                @test !ishidden("$(homedir())/Desktop")
+                @test !ishidden(homedir())
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
                 @test !ishidden("/usr/")
