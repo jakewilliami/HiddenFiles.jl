@@ -87,7 +87,7 @@ using Test
             @test !ishidden("C:\\Windows\\system32\\rundll32.exe")
             @test !ishidden("C:\\Temp\\")
             @test ishidden("C:\\ProgramData")
-            @test ishidden("C:\\ProgramData\\Desktop"
+            @test ishidden("C:\\ProgramData\\Desktop")
             @test !ishidden("C:\\ProgramData\\Package Cache")
             @test !ishidden("C:\\Drivers")
         end
