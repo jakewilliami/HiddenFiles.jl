@@ -2,16 +2,15 @@ using HiddenFiles
 using Test
 @testset "HiddenFiles.jl" begin
     @static if Sys.isunix()
-        function gen_temp_dot_file(parent::String = tempdir())
-            tmp_hidden = tempname(parent)
+        function mk_temp_dot_file(parent::String = tempdir())
+            tmp_hidden = joinpath(parent, '.' * basename(tempname()))
             components = splitpath(tmp_hidden)
-            splitpath[end] = '.' * splitpath[end]
-            tmp_path = joinpath(splitpath)
+            tmp_path = joinpath(components)
             touch(tmp_path)
             return tmp_path
         end
         
-        p, p′ = gen_temp_dot_file(), gen_temp_dot_file(homedir())
+        p, p′ = mk_temp_dot_file(), mk_temp_dot_file(homedir())
         
         @testset "HiddenFiles.jl—General UNIX" begin
             @test ishidden(p)
@@ -30,7 +29,8 @@ using Test
                 # TODO: complete this case
                 @test HiddenFiles.ishidden("/bin/")
                 @test HiddenFiles.ishidden("/dev/")
-                @test HiddenFiles.ishidden("/tmp/")
+                @test HiddenFiles.ishidden("/usr/")
+                @test !HiddenFiles.ishidden("/tmp/")
                 
                 # Case 3: Explicitly hidden files and directories
                 @test HiddenFiles._isinvisible("/Volumes")
@@ -64,6 +64,8 @@ using Test
                 @test !ishidden("$(homedir())/Desktop")
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
+                @test !ishidden("/usr/")
+                @test !ishidden("/mnt/")
                 @test !ishidden("/tmp/")
             end
         else
@@ -75,6 +77,8 @@ using Test
                 @test !ishidden("$(homedir())/Desktop")
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
+                @test !ishidden("/usr/")
+                @test !ishidden("/mnt/")
                 @test !ishidden("/tmp/")
             end
         end
