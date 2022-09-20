@@ -4,8 +4,6 @@ using Test
     @static if Sys.isunix()
         function mk_temp_dot_file(parent::String = tempdir())
             tmp_hidden = joinpath(parent, '.' * basename(tempname()))
-            components = splitpath(tmp_hidden)
-            tmp_path = joinpath(components)
             touch(tmp_path)
             return tmp_path
         end
