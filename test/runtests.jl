@@ -69,9 +69,7 @@ using Test
         else
             @testset "HiddenFiles.jl—UNIX excluding macOS" begin
                 @test ishidden(p)
-                @test !HiddenFiles._isinvisible(p)
                 @test ishidden(p′)
-                @test !HiddenFiles._isinvisible(p′)
                 @test !ishidden(homedir())
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
