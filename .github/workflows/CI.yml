@@ -16,7 +16,7 @@ jobs:
       matrix:
         version:
           - "1.0"       # Old version
-          - "1.5"       # Recent LTS
+          - "1.6"       # Recent LTS
           - "nightly"   # Latest Release
         os:
           - ubuntu-latest
