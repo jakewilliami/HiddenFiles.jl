@@ -122,7 +122,7 @@ export ishidden
         #=== All macOS cases ===#
         _ishidden(f::AbstractString) = _ishidden_bsd_related(f) || _exists_inside_package_or_bundle(f) || (iszfs() && _ishidden_zfs(f))
     elseif Sys.isbsd()  # BSD
-        _hidden(f::AbstractString) = _ishidden_bsd_related(f) || (iszfs() && _ishidden_zfs(f))
+        _ishidden(f::AbstractString) = _ishidden_bsd_related(f) || (iszfs() && _ishidden_zfs(f))
     else  # General UNIX
         _ishidden(f::AbstractString) = _ishidden_unix(f) || (iszfs() && _ishidden_zfs(f))
     end
