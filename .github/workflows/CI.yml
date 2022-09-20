@@ -22,7 +22,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-          - freebsd-latest
+          # - freebsd-latest  # CirrusCI.jl is currently (Sept., 2022) required to test with FreeBSB
         arch:
           - x64
           - x86 # 32-bit; i686
