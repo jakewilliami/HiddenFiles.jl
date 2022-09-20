@@ -89,7 +89,6 @@ using Test
             @test ishidden("C:\\ProgramData")
             @test ishidden("C:\\ProgramData\\Desktop")
             @test !ishidden("C:\\ProgramData\\Package Cache")
-            @test !ishidden("C:\\Drivers")
         end
     else
         @testset "HiddenFiles.jl—Else branch (invalid OS)" begin
