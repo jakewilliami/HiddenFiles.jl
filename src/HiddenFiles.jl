@@ -11,8 +11,13 @@ ishidden(f::AbstractString)
 
 Check if a file or directory is hidden.
 
+On Unix-like systems, a file or directory is hidden if it starts with a full stop/period (`U+002e`).  On Windows systems, this function will parse file attributes to determine if the given file or directory is hidden.
+
 !!! note
-    On macOS and BSD, this function will follow symlinks.
+    On macOS and BSD, this function will also check the `st_flags` field from `stat` to check if the `UF_HIDDEN` flag has been set.
+
+!!! note
+    On macOS, any file or directory within a [package](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html) or a [bundle](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html) will be considered hidden.
 """
 ishidden
 
@@ -30,7 +35,7 @@ ishidden
         const ST_FLAGS_STAT_OFFSET = 0x15
         function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-            i = ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            i = ccall(:jl_stat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
             return statbuf[ST_FLAGS_STAT_OFFSET]
         end
