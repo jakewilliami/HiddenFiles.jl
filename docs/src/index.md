@@ -17,11 +17,7 @@ Pkg.add("HiddenFiles")
 ```
 
 ## Documentation
-```@autodocs
-Modules = [HiddenFiles]
+```@docs
+ishidden
 ```
 
-## Index
-
-```@index
-```
