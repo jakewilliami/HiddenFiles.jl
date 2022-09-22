@@ -4,6 +4,19 @@ module HiddenFiles
 export ishidden
 
 
+"""
+```julia
+ishidden(f::AbstractString)
+```
+
+Check if a file or directory is hidden.
+
+!!! note
+    On macOS and BSD, this function will follow symlinks.
+"""
+ishidden
+
+
 @static if Sys.isunix()
     _ishidden_unix(f::AbstractString) = startswith(basename(f), '.')
     
