@@ -71,7 +71,7 @@ end
 # https://developer.apple.com/documentation/corefoundation/1542730-cfstringgetcharacteratindex
 function _cfstring_get_character_at_index(cfstr::Cstring, idx::T) where {T <: Integer}
     # UniChar CFStringGetCharacterAtIndex(CFStringRef theString, CFIndex idx);
-    return Char(ccall(:CFStringGetCharacterAtIndex, UInt16, (Cstring, UInt32), cfstr, idx))
+    return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
 end
 
 # https://github.com/vovkasm/input-source-switcher/blob/c5bab3de716db5e3dae3703ed3b72f2bf1cd51d3/utils.cpp#L9-L18
