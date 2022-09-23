@@ -4,21 +4,55 @@ module HiddenFiles
 export ishidden
 
 
+"""
+```julia
+ishidden(f::AbstractString)
+```
+
+Check if a file or directory is hidden.
+
+On Unix-like systems, a file or directory is hidden if it starts with a full stop/period (`U+002e`).  On Windows systems, this function will parse file attributes to determine if the given file or directory is hidden.
+
+!!! note
+    On macOS and BSD, this function will also check the `st_flags` field from `stat` to check if the `UF_HIDDEN` flag has been set.
+
+!!! note
+    On macOS, any file or directory within a [package](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html) or a [bundle](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html) will be considered hidden.
+"""
+ishidden
+
+include("docs.jl")
+
 @static if Sys.isunix()
-    _ishidden_unix(f::AbstractString) = startswith(basename(f), '.')
+    include("utils/zfs.jl")
+    if iszfs()  # @static breaks here # ZFS
+        error("not yet implemented")
+        _ishidden_zfs(f::AbstractString) = error("not yet implemented")
+    end
     
-    @static if Sys.isapple() || Sys.isbsd()  # BDS-related
+    # Trivial Unix check
+    _isdotfile(f::AbstractString) = startswith(basename(f), '.')
+    # Account for ZFS
+    _ishidden_unix(f::AbstractString) = _isdotfile(f) || (iszfs() && _ishidden_zfs())
+    
+    @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
         # https://opensource.apple.com/source/xnu/xnu-4570.41.2/bsd/sys/stat.h.auto.html
+        # https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2
         const UF_HIDDEN = 0x00008000
         
-        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/lstat.2.html
-        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is at index 11, or 21 in 32-bit
+        # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat.2.html
+        # http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t
         const ST_FLAGS_STAT_OFFSET = 0x15
         function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-            i = ccall(:jl_lstat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            
+            # int stat(const char *restrict path, struct stat *restrict buf);
+            # int stat(const char * restrict path, struct stat * restrict sb);
+            i = ccall(:jl_stat, Int32, (Cstring, Ptr{Cvoid}), f, statbuf)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
+            
+            # st_flags offset is at index 11, or 21 in 32-bit
             return statbuf[ST_FLAGS_STAT_OFFSET]
         end
         
@@ -27,12 +61,6 @@ export ishidden
         _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
         
         _ishidden_bsd_related(f::AbstractString) = _ishidden_unix(f) || _isinvisible(f)
-    end
-    
-    include("utils/zfs.jl")
-    if iszfs()  # @static breaks here
-        error("not yet implemented")
-        _ishidden_zfs(f::AbstractString) = error("not yet implemented")
     end
     
     @static if Sys.isapple()  # macOS/Darwin
@@ -59,6 +87,7 @@ export ishidden
         #   - `/usr`—Contains non-essential command-line binaries, libraries, header files, and other data.
         #   - `/var`—Contains log files and other files whose content is variable. (Log files are typically viewed using the Console app.)
         # TODO
+        _issystemfile(f::AbstractString) = false
         
         
         #=== Case 3: Explicitly hidden files and directories ===#
@@ -102,7 +131,7 @@ export ishidden
         # https://stackoverflow.com/a/12233785
         # Bundles: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html
         # Packages: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html
-        PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
+        const PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
         _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
         
         # If a file or directory exists inside a package or bundle, then it is hidden.  Packages or bundles themselves
@@ -120,11 +149,13 @@ export ishidden
         
         
         #=== All macOS cases ===#
-        _ishidden(f::AbstractString) = _ishidden_bsd_related(f) || _exists_inside_package_or_bundle(f) || (iszfs() && _ishidden_zfs(f))
-    elseif Sys.isbsd()  # BSD
-        _ishidden(f::AbstractString) = _ishidden_bsd_related(f) || (iszfs() && _ishidden_zfs(f))
+        _ishidden_macos(f::AbstractString) = _ishidden_bsd_related(f) || _issystemfile(f) || _exists_inside_package_or_bundle(f)
+        _ishidden = _ishidden_macos
+    elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
+        _ishidden_bsd(f::AbstractString) = _ishidden_bsd_related(f)
+        _ishidden = _ishidden_bsd
     else  # General UNIX
-        _ishidden(f::AbstractString) = _ishidden_unix(f) || (iszfs() && _ishidden_zfs(f))
+        _ishidden = _ishidden_unix
     end
 elseif Sys.iswindows()
     # https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
@@ -133,10 +164,16 @@ elseif Sys.iswindows()
     const FILE_ATTRIBUTE_HIDDEN = 0x2
     const FILE_ATTRIBUTE_SYSTEM = 0x4
     
-    # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
-    # https://stackoverflow.com/a/1343643/12069968
-    # https://stackoverflow.com/a/14063074/12069968
-    _ishidden(f::AbstractString) = !iszero(ccall(:GetFileAttributesA, UInt32, (Cstring,), f) & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM))
+    function _ishidden_windows(f::AbstractString)
+        # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
+        # DWORD GetFileAttributesA([in] LPCSTR lpFileName);
+        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), f)
+        
+        # https://stackoverflow.com/a/1343643/12069968
+        # https://stackoverflow.com/a/14063074/12069968
+        return !iszero(f_attrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM))
+    end
+    _ishidden = _ishidden_windows
 else
     _ishidden(f::AbstractString) = error("hidden files for this OS need to be defined")
 end
