@@ -20,6 +20,7 @@ const CF_STRING_ENCODING = K_CF_STRING_ENCODING_MAC_ROMAN # K_CF_STRING_ENCODING
 
 # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring        
 function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = CF_STRING_ENCODING)
+    # CFStringRef CFStringCreateWithCString(CFAllocatorRef alloc, const char *cStr, CFStringEncoding encoding);
     cfstr = ccall(:CFStringCreateWithCString, Cstring, 
                   (Ptr{Cvoid}, Cstring, UInt32),
                   C_NULL, s, encoding)
@@ -29,6 +30,7 @@ end
 
 # https://developer.apple.com/documentation/coreservices/1426917-mditemcreate
 function _mditem_create(cfstr_f::Cstring)
+    # MDItemRef MDItemCreate(CFAllocatorRef allocator, CFStringRef path);
     ptr = ccall(:MDItemCreate, Ptr{UInt32}, (Ptr{Cvoid}, Cstring), C_NULL, cfstr_f)
     ptr == C_NULL && error("Cannot create MD Item for CF String $(repr(cfstr_f))")
     return ptr
@@ -36,6 +38,7 @@ end
 
 # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
 function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
+    # CFTypeRef MDItemCopyAttribute(MDItemRef item, CFStringRef name);
     ptr = ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
     ptr == C_NULL && error("Cannot copy MD Item attribute $(repr(cfstr_attr_name)); this attribute name might not exist")
     return ptr
@@ -43,32 +46,38 @@ end
 
 # https://developer.apple.com/documentation/corefoundation/1388772-cfarraygetcount
 function _cfarray_get_count(cfarr_ptr::Ptr{UInt32})
+    # CFIndex CFArrayGetCount(CFArrayRef theArray);
     return ccall(:CFArrayGetCount, Int32, (Ptr{UInt32},), cfarr_ptr)
 end
 
 # https://developer.apple.com/documentation/corefoundation/1388767-cfarraygetvalueatindex
 function _cfarray_get_value_at_index(cfarr_ptr::Ptr{UInt32}, idx::T) where {T <: Integer}
+    # const void * CFArrayGetValueAtIndex(CFArrayRef theArray, CFIndex idx);
     return ccall(:CFArrayGetValueAtIndex, Cstring, (Ptr{UInt32}, Int32), cfarr_ptr, idx)
 end
 
 # https://developer.apple.com/documentation/corefoundation/1542853-cfstringgetlength
 function _cfstring_get_length(cfstr::Cstring)
+    # CFIndex CFStringGetLength(CFStringRef theString);
     return ccall(:CFStringGetLength, Int32, (Cstring,), cfstr)
 end
 
 # https://developer.apple.com/documentation/corefoundation/1542143-cfstringgetmaximumsizeforencodin
 function _cfstring_get_maximum_size_for_encoding(strlen::T, encoding::Unsigned = CF_STRING_ENCODING) where {T <: Integer}
+    # CFIndex CFStringGetMaximumSizeForEncoding(CFIndex length, CFStringEncoding encoding);
     return ccall(:CFStringGetMaximumSizeForEncoding, Int32, (Int32, UInt32), strlen, encoding)
 end
 
 # https://developer.apple.com/documentation/corefoundation/1542730-cfstringgetcharacteratindex
 function _cfstring_get_character_at_index(cfstr::Cstring, idx::T) where {T <: Integer}
-    return Char(ccall(:CFStringGetCharacterAtIndex, UInt8, (Cstring, UInt32), cfstr, idx))
+    # UniChar CFStringGetCharacterAtIndex(CFStringRef theString, CFIndex idx);
+    return Char(ccall(:CFStringGetCharacterAtIndex, UInt16, (Cstring, UInt32), cfstr, idx))
 end
 
 # https://github.com/vovkasm/input-source-switcher/blob/c5bab3de716db5e3dae3703ed3b72f2bf1cd51d3/utils.cpp#L9-L18
 # https://www.tabnine.com/code/java/methods/org.eclipse.swt.internal.webkit.WebKit_win32/CFStringGetCharactersPtr
 function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = CF_STRING_ENCODING)
+    # TODO: get _cfstring_get_character_at_index to return a UInt and write to buffer here
     strlen = _cfstring_get_length(cfstr)
     maxsz = _cfstring_get_maximum_size_for_encoding(strlen, encoding)
     cfio = IOBuffer()

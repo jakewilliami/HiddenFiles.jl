@@ -31,12 +31,17 @@ ishidden
         const UF_HIDDEN = 0x00008000
         
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/lstat.2.html
-        # http://docs.libuv.org/en/v1.x/fs.html  # st_flags offset is at index 11, or 21 in 32-bit
+        # http://docs.libuv.org/en/v1.x/fs.html
         const ST_FLAGS_STAT_OFFSET = 0x15
         function _st_flags(f::AbstractString)
             statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-            i = ccall(:jl_stat, Int32, (Cstring, Ptr{UInt8}), f, statbuf)
+            
+            # int stat(const char *restrict path, struct stat *restrict buf);
+            # int stat(const char * restrict path, struct stat * restrict sb);
+            i = ccall(:jl_stat, Int32, (Cstring, Ptr{Cvoid}), f, statbuf)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
+            
+            # st_flags offset is at index 11, or 21 in 32-bit
             return statbuf[ST_FLAGS_STAT_OFFSET]
         end
         
@@ -151,10 +156,15 @@ elseif Sys.iswindows()
     const FILE_ATTRIBUTE_HIDDEN = 0x2
     const FILE_ATTRIBUTE_SYSTEM = 0x4
     
-    # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
-    # https://stackoverflow.com/a/1343643/12069968
-    # https://stackoverflow.com/a/14063074/12069968
-    _ishidden(f::AbstractString) = !iszero(ccall(:GetFileAttributesA, UInt32, (Cstring,), f) & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM))
+    function _ishidden(f::AbstractString)
+        # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
+        # DWORD GetFileAttributesA([in] LPCSTR lpFileName);
+        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), f)
+        
+        # https://stackoverflow.com/a/1343643/12069968
+        # https://stackoverflow.com/a/14063074/12069968
+        return !iszero(f_attrs & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM))
+    end
 else
     _ishidden(f::AbstractString) = error("hidden files for this OS need to be defined")
 end
