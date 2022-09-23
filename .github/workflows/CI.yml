@@ -16,20 +16,20 @@ jobs:
       matrix:
         version:
           - "1.0"       # Old version
-          - "1.5"       # Recent LTS
+          - "1.6"       # Recent LTS
           - "nightly"   # Latest Release
         os:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-          - freebsd-latest
+          # - freebsd-latest  # CirrusCI.jl is currently (Sept., 2022) required to test with FreeBSB
         arch:
           - x64
           - x86 # 32-bit; i686
-        # exclude:
+        exclude:
           # 32-bit Julia binaries are not available on macOS
-          # - os: macOS-latest
-            # arch: x86
+          - os: macOS-latest
+            arch: x86
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
