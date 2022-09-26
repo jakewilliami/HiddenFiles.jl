@@ -6,21 +6,6 @@ const LINUX_ZFS_SUPER_MAGIC = 0x2fc12fc1
 
 const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SUPER_MAGIC)
 
-#=
-#include <stdio.h>
-#include <stddef.h>
-#include <sys/param.h>
-#include <sys/mount.h>
-
-int main() {
-	struct statfs st;
-    printf("offsetof(struct statfs, f_type): 0x%lx\n", offsetof(struct statfs, f_type));
-	statfs("/", &st);
-	printf("st.f_type: 0x%llx\n", (uint64_t) st.f_type);
-    return 0;
-}
-=#
-
 @static if VERSION ≥ v"1.6"
     @static if VERSION < v"1.8"
         # Adapted from Julia 1.8's diskstat: https://github.com/JuliaLang/julia/pull/42248
