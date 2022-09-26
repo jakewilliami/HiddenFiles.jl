@@ -107,6 +107,7 @@ using Test
     
     @testset "HiddenFiles.jl—Path Handling" begin
         f = randpath()
-        @test_throws Base.IOError ishidden(f)
+        # Julia < 1.3 throws a SystemError when `realpath` fails
+        @test_throws Union{Base.IOError, SystemError} ishidden(f)
     end
 end
