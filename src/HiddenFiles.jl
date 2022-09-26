@@ -190,6 +190,7 @@ end
 # Each OS branch defines its own _ishidden function.  In the main ishidden function, we check that the path exists, expand
 # the real path out, and apply the branch's _ishidden function to that path to get a final result
 function ishidden(f::AbstractString)
+    # If path does not exist, `realpath` will error™
     try
         rp = realpath(f)
     catch e
@@ -201,7 +202,13 @@ function ishidden(f::AbstractString)
         # If this fails for some other reason, rethrow
         rethrow()
     end
-    return _ishidden(f, realpath(f))
+    
+    # Julia < 1.2 on Windows does not error on `realpath` if path does not exist, so we
+    # must do so manually here
+    ispath(rp) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
+    
+    # If we got here, the path exists, and we can continue safely with our _ishidden checks
+    return _ishidden(f, rp)
 end
 
 
