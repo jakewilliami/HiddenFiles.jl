@@ -194,7 +194,7 @@ function ishidden(f::AbstractString)
         rp = realpath(f)
     catch e
         err_prexif = "ishidden($(repr(f)))"
-        isa(e, SystemError) && throw(Base.uv_error(err_prexif, e.errno))  # Julia 1.0 throws a SystemError when `realpath` fails
+        isa(e, SystemError) && throw(Base.uv_error(err_prexif, e.errnum))  # Julia 1.0 throws a SystemError when `realpath` fails
         isa(e, Base.IOError) && throw(Base.uv_error(err_prexif, e.code))
         rethrow()
     end
