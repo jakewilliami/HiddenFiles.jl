@@ -25,11 +25,26 @@ using Test
                 
                 # Case 2: UNIX-specific directories
                 # TODO: complete this case
-                @test HiddenFiles.ishidden("/bin/")
-                @test HiddenFiles.ishidden("/dev/")
-                @test HiddenFiles.ishidden("/usr/")
-                @test !HiddenFiles.ishidden("/tmp/")
-                
+                @test HiddenFiles.ishidden("/bin")
+                @test HiddenFiles.ishidden("/dev")
+                @test HiddenFiles.ishidden("/dev")
+                @test HiddenFiles.ishidden("/etc")
+                @test HiddenFiles.ishidden("/sbin")
+                @test HiddenFiles.ishidden("/sbin")
+                @test HiddenFiles.ishidden("/tmp")
+                @test HiddenFiles.ishidden("/usr")
+                @test HiddenFiles.ishidden("/var")
+                @test HiddenFiles._isinvisible_alt("/bin")
+                @test HiddenFiles._isinvisible_alt("/dev")
+                @test HiddenFiles._isinvisible_alt("/dev")
+                @test HiddenFiles._isinvisible_alt("/etc")
+                @test HiddenFiles._isinvisible_alt("/sbin")
+                @test HiddenFiles._isinvisible_alt("/sbin")
+                @test HiddenFiles._isinvisible_alt("/tmp")
+                @test HiddenFiles._isinvisible_alt("/usr")
+                @test HiddenFiles._isinvisible_alt("/var")
+                @test !HiddenFiles._isinvisible_alt("/bin/bash")
+
                 # Case 3: Explicitly hidden files and directories
                 @test HiddenFiles._isinvisible("/Volumes")
                 @test ishidden("/Volumes")
@@ -41,7 +56,8 @@ using Test
                 @test ishidden("/System/Applications/Utilities/Terminal.app/Contents/")  # This should be the same as above, as we expand all paths using realpath
                 @test !HiddenFiles._ispackage_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
-                @test !HiddenFiles._exists_inside_package_or_bundle("/bin/")
+                @test !HiddenFiles._exists_inside_package_or_bundle("/bin")
+                @test !HiddenFiles._exists_inside_package_or_bundle("/tmp")
                 f = String(rand(Char, 32))  # this path shouldn't exist
                 cfstr_nonexistent = HiddenFiles._cfstring_create_with_cstring(f)
                 @test_throws Exception HiddenFiles._mditem_create(cfstr_nonexistent)
