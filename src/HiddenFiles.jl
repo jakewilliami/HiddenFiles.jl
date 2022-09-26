@@ -191,6 +191,7 @@ end
 # the real path out, and apply the branch's _ishidden function to that path to get a final result
 function ishidden(f::AbstractString)
     # If path does not exist, `realpath` will error™
+    local rp::String
     try
         rp = realpath(f)
     catch e
