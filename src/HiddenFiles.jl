@@ -189,7 +189,7 @@ end
 # Each OS branch defines its own _ishidden function.  In the main ishidden function, we check that the path exists, expand
 # the real path out, and apply the branch's _ishidden function to that path to get a final result
 function ishidden(f::AbstractString)
-    ispath(f) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
+    ispath(realpath(f)) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
     return _ishidden(f)
 end
 
