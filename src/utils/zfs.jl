@@ -1,3 +1,5 @@
+# TODO: Correct < 1.6 error codes
+
 # https://lists.freebsd.org/pipermail/freebsd-hackers/2018-February/052295.html
 const SUN_ZFS_SUPER_MAGIC = 0x1b
 const BSD_ZFS_SUPER_MAGIC = 0xde  # Obtained from testing
@@ -6,7 +8,7 @@ const LINUX_ZFS_SUPER_MAGIC = 0x2fc12fc1
 
 const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SUPER_MAGIC)
 
-@static if VERSION ≥ v"1.6"
+@static if VERSION == v"1.6"
     @static if VERSION < v"1.8"
         # Adapted from Julia 1.8's diskstat: https://github.com/JuliaLang/julia/pull/42248
         # C calls for UV statfs requires Julia 1.6
@@ -36,6 +38,7 @@ const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SU
     
     function _iszfs(f::AbstractString)
         s = statfs(f)
+        @info s.ftype
         return s.ftype ∈ ZFS_SUPER_MAGICS
     end
 else
@@ -51,6 +54,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
+            @info buf[F_TYPE_OFFSET] buf[F_SSUBTYPE_OFFSET]
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS || buf[F_FSSUBTYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isbsd()
@@ -63,6 +67,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
+            @info buf[F_TYPE_OFFSET]
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isunix()
@@ -75,6 +80,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
+            @info buf[F_TYPE_OFFSET]
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     else
