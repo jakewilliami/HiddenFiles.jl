@@ -243,9 +243,4 @@ function _ls_copy_item_info_for_url(url_ref::Ptr{UInt32}, requested_info::Unsign
     return buf
 end
 
-function _isinvisible_alt(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
-    cfstr = _cfstring_create_with_cstring(f, str_encoding)
-    url_ref = _cf_url_create_with_file_system_path(cfstr, isdir(f))
-    item_info = _ls_copy_item_info_for_url(url_ref, K_IS_INVISIBLE)
-    return !iszero(item_info[1] & K_IS_INVISIBLE)
-end
+
