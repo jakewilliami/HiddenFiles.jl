@@ -14,10 +14,13 @@ Check if a file or directory is hidden.
 On Unix-like systems, a file or directory is hidden if it starts with a full stop/period (`U+002e`).  On Windows systems, this function will parse file attributes to determine if the given file or directory is hidden.
 
 !!! note
-    On macOS and BSD, this function will also check the `st_flags` field from `stat` to check if the `UF_HIDDEN` flag has been set.
+    On Unix-like systems, in order to correctly determine if the file begins with a full stop, we must first expand the path to its real path.
 
 !!! note
-    On macOS, any file or directory within a [package](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html) or a [bundle](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html) will be considered hidden.
+    On operating systems deriving from BSD (i.e., *BSD, macOS), this function will also check the `st_flags` field from `stat` to check if the `UF_HIDDEN` flag has been set.
+
+!!! note
+    On macOS, any file or directory within a [package](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html) or a [bundle](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html) will also be considered hidden.
 """
 ishidden
 
@@ -32,8 +35,8 @@ include("docs.jl")
     
     # Trivial Unix check
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
-    # Account for ZFS
-    _ishidden_unix(f::AbstractString) = _isdotfile(f) || (iszfs() && _ishidden_zfs())
+    # Check dotfiles, but also account for ZFS
+    _ishidden_unix(f::AbstractString) = _isdotfile(realpath(f)) || (iszfs() && _ishidden_zfs())
     
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
@@ -183,7 +186,7 @@ end
 # the real path out, and apply the branch's _ishidden function to that path to get a final result
 function ishidden(f::AbstractString)
     ispath(f) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
-    return _ishidden(realpath(f))
+    return _ishidden(f)
 end
 
 
