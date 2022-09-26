@@ -199,7 +199,9 @@ end
 #===============================================#
 
 # https://developer.apple.com/documentation/coreservices/lsiteminfoflags/klsiteminfoisinvisible
+# TODO: convert this to enum: https://developer.apple.com/documentation/coreservices/lsiteminfoflags: https://github.com/phracker/MacOSX-SDKs/blob/041600eda65c6a668f66cb7d56b7d1da3e8bcc93/MacOSX10.6.sdk/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Headers/LSInfo.h#L95-L111
 const KLS_ITEM_INFO_IS_INVISIBLE = 0x00000040
+
 # https://developer.apple.com/documentation/coreservices/1429609-anonymous/kisinvisible
 const K_IS_INVISIBLE = 0x00000040
 
@@ -208,26 +210,30 @@ const K_CF_URL_POSIX_PATH_STYLE = zero(Int8)
 
 # https://developer.apple.com/documentation/corefoundation/1543250-cfurlcreatewithfilesystempath
 function _cf_url_create_with_file_system_path(cfstr::Cstring, is_directory::Bool, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
+    # TODO: handle error codes
     # CFURLRef CFURLCreateWithFileSystemPath(CFAllocatorRef allocator, CFStringRef filePath, CFURLPathStyle pathStyle, Boolean isDirectory);
     url_ref = ccall(:CFURLCreateWithFileSystemPath, Ptr{UInt32},
                     (Ptr{Cvoid}, Cstring, Int32, Bool),
                     C_NULL, cfstr, path_style, is_directory)
     return url_ref
 end
-# _cf_url_create_with_file_system_path(f::AbstractString, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE, str_encoding::Unsigned = CF_STRING_ENCODING) = 
-#     _cf_url_create_with_file_system_path(_cf_string_create_with_cstring(f, str_encoding), isdir(f), path_style)
-    
 
 # https://developer.apple.com/documentation/coreservices/lsiteminforecord
 function _ls_item_info_record()
+    @warn "LSItemInfoRecord has been deprecated since macOS 10.11"
     error("not yet implemented")
 end
 
 # https://developer.apple.com/documentation/coreservices/lsrequestedinfo/klsrequestallflags
 const K_LS_REQUEST_ALL_FLAGS = 0x00000010
+# TODO: convert this to enum: https://developer.apple.com/documentation/coreservices/lsrequestedinfo: https://github.com/phracker/MacOSX-SDKs/blob/041600eda65c6a668f66cb7d56b7d1da3e8bcc93/MacOSX10.6.sdk/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Headers/LSInfo.h#L83-L93
 
 # https://developer.apple.com/documentation/coreservices/1445685-lscopyiteminfoforurl
 function _ls_copy_item_info_for_url(url_ref::Ptr{UInt32}, requested_info::Unsigned = K_LS_REQUEST_ALL_FLAGS)
+    # TODO: handle error codes
+    requested_info == K_LS_REQUEST_ALL_FLAGS && @warn "kLSRequestAllFlags has been deprecated since macOS 10.11"
+    requested_info == KLS_ITEM_INFO_IS_INVISIBLE && @warn "kLSItemInfoIsInvisible has been deprecated since macOS 10.11; ensure you are using kIsInvisible instead"
+    @warn "LSCopyItemInfoForURL has been deprecated since macOS 10.11"
     # buf = Vector{UInt32}(undef, 100)
     buf = zeros(UInt32, 100)
     # OSStatus LSCopyItemInfoForURL(CFURLRef inURL, LSRequestedInfo inWhichInfo, LSItemInfoRecord *outItemInfo);
@@ -235,11 +241,6 @@ function _ls_copy_item_info_for_url(url_ref::Ptr{UInt32}, requested_info::Unsign
                 (Ptr{UInt32}, UInt32, Ptr{Cvoid}),
                 url_ref, requested_info, buf)
     return buf
-end
-
-# https://developer.apple.com/documentation/coreservices/lsiteminfoflags
-function _ls_item_info_flags()
-    error("not yet implemented")
 end
 
 function _isinvisible_alt(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
