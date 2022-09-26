@@ -196,3 +196,55 @@ function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = CF_STRING_E
     return String(take!(cfio))
 end
 
+#===============================================#
+
+# https://developer.apple.com/documentation/coreservices/lsiteminfoflags/klsiteminfoisinvisible
+const KLS_ITEM_INFO_IS_INVISIBLE = 0x00000040
+# https://developer.apple.com/documentation/coreservices/1429609-anonymous/kisinvisible
+const K_IS_INVISIBLE = 0x00000040
+
+# https://developer.apple.com/documentation/corefoundation/cfurlpathstyle
+const K_CF_URL_POSIX_PATH_STYLE = zero(Int8)
+
+# https://developer.apple.com/documentation/corefoundation/1543250-cfurlcreatewithfilesystempath
+function _cf_url_create_with_file_system_path(cfstr::Cstring, is_directory::Bool, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
+    # CFURLRef CFURLCreateWithFileSystemPath(CFAllocatorRef allocator, CFStringRef filePath, CFURLPathStyle pathStyle, Boolean isDirectory);
+    url_ref = ccall(:CFURLCreateWithFileSystemPath, Ptr{UInt32},
+                    (Ptr{Cvoid}, Cstring, Int32, Bool),
+                    C_NULL, cfstr, path_style, is_directory)
+    return url_ref
+end
+# _cf_url_create_with_file_system_path(f::AbstractString, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE, str_encoding::Unsigned = CF_STRING_ENCODING) = 
+#     _cf_url_create_with_file_system_path(_cf_string_create_with_cstring(f, str_encoding), isdir(f), path_style)
+    
+
+# https://developer.apple.com/documentation/coreservices/lsiteminforecord
+function _ls_item_info_record()
+    error("not yet implemented")
+end
+
+# https://developer.apple.com/documentation/coreservices/lsrequestedinfo/klsrequestallflags
+const K_LS_REQUEST_ALL_FLAGS = 0x00000010
+
+# https://developer.apple.com/documentation/coreservices/1445685-lscopyiteminfoforurl
+function _ls_copy_item_info_for_url(url_ref::Ptr{UInt32}, requested_info::Unsigned = K_LS_REQUEST_ALL_FLAGS)
+    # buf = Vector{UInt32}(undef, 100)
+    buf = zeros(UInt32, 100)
+    # OSStatus LSCopyItemInfoForURL(CFURLRef inURL, LSRequestedInfo inWhichInfo, LSItemInfoRecord *outItemInfo);
+    ptr = ccall(:LSCopyItemInfoForURL, Ptr{UInt32},
+                (Ptr{UInt32}, UInt32, Ptr{Cvoid}),
+                url_ref, requested_info, buf)
+    return buf
+end
+
+# https://developer.apple.com/documentation/coreservices/lsiteminfoflags
+function _ls_item_info_flags()
+    error("not yet implemented")
+end
+
+function _isinvisible_alt(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
+    cfstr = _cfstring_create_with_cstring(f, str_encoding)
+    url_ref = _cf_url_create_with_file_system_path(cfstr, isdir(f))
+    item_info = _ls_copy_item_info_for_url(url_ref, K_IS_INVISIBLE)
+    return !iszero(item_info[1] & K_IS_INVISIBLE)
+end
