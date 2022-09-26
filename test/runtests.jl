@@ -38,6 +38,10 @@ using Test
                 # Case 4: Packages and bundles
                 @test !ishidden("/System/Applications/Utilities/Terminal.app")
                 @test ishidden("/System/Applications/Utilities/Terminal.app/Contents")
+                @test ishidden("/System/Applications/Utilities/Terminal.app/Contents/../../Terminal.app/Contents")
+                @test ishidden("/////System/Applications/Utilities/Terminal.app/Contents/../Contents")
+                @test ishidden("/System/Applications/Utilities/Terminal.app/Contents/../Contents///MacOS////../MacOS/../../Contents/MacOS/Terminal///")
+                @test !ishidden("/")
                 @test ishidden("/System/Applications/Utilities/Terminal.app/Contents/")  # This should be the same as above, as we expand all paths using realpath
                 @test !HiddenFiles._ispackage_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")

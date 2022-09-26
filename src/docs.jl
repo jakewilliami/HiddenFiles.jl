@@ -154,6 +154,9 @@ _exists_inside_package_or_bundle(f::AbstractString) -> Bool
 Determines whether the given path exists inside a package or bundle on macOS.  If it does, the path will be considered hidden.
 
 See also: [`_ispackage_or_bundle`](@ref), [`_ishidden_macos`](@ref)
+
+!!! note
+    This function will expand the given file to its real path, as it is possible that the file provided has a trailing slash, meaning the first "parent" this function will check is itself.  This also makes relative paths much simpler to work with.
 """
 _exists_inside_package_or_bundle
 

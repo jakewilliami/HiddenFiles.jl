@@ -140,9 +140,13 @@ include("docs.jl")
         # If a file or directory exists inside a package or bundle, then it is hidden.  Packages or bundles themselves
         # are not necessarily hidden.
         function _exists_inside_package_or_bundle(f::AbstractString)
-            # This assumes that f has already been modified with the realpath function, as if it hasn't,
+            # This function necessitates that f has is modified with the realpath function, as if it hasn't,
             # it is possible that f has a trailing slash, meaning its dirname is still itself
-            f = dirname(f)
+            f = dirname(realpath(f))
+            
+            # We can't check the root directory, as this doesn't have any metadata information, so
+            # _k_mditem_content_type_tree will fail.  Otherwise, we start at the parent directory of the
+            # given file, and check if any of its parents are packages or bundles.
             while f != "/"
                 _ispackage_or_bundle(f) && return true
                 f = dirname(f)
