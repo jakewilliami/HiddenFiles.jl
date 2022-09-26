@@ -58,9 +58,9 @@ include("docs.jl")
         
         # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
-        _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
+        _isinvisible_st_flags(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
         
-        _ishidden_bsd_related(f::AbstractString) = _ishidden_unix(f) || _isinvisible(f)
+        _ishidden_bsd_related(f::AbstractString) = _ishidden_unix(f) || _isinvisible_st_flags(f)
     end
     
     @static if Sys.isapple()  # macOS/Darwin
@@ -86,15 +86,24 @@ include("docs.jl")
         #   - `/tmp`—Contains temporary files created by apps and the system.
         #   - `/usr`—Contains non-essential command-line binaries, libraries, header files, and other data.
         #   - `/var`—Contains log files and other files whose content is variable. (Log files are typically viewed using the Console app.)
-        # TODO
-        _issystemfile(f::AbstractString) = false
+        _issystemdir(f::AbstractString) = false # TODO
+        
+        # This _isinvisible function seems to capture some cases (e.g., `/tmp`) that the other _isinvisible function does not
+        function _isinvisible_macos_item_info(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
+            cfstr = _cfstring_create_with_cstring(f, str_encoding)
+            url_ref = _cf_url_create_with_file_system_path(cfstr, isdir(f))
+            item_info = _ls_copy_item_info_for_url(url_ref, K_IS_INVISIBLE)
+            return !iszero(item_info[1] & K_IS_INVISIBLE)
+        end
         
         
         #=== Case 3: Explicitly hidden files and directories ===#
         # The Finder may hide specific files or directories that should not be accessed directly by the user.  The most notable example of 
         # this is the /Volumes directory, which contains a subdirectory for each mounted disk in the local file system from the command line. 
         # (The Finder provides a different user interface for accessing local disks.)  In macOS 10.7 and later, the Finder also hides the
-        # `~/Library` directory—that is, the `Library` directory located in the user’s home directory.  This case is handled by `_isinvisible`.
+        # `~/Library` directory—that is, the `Library` directory located in the user’s home directory.
+        # 
+        # This case is handled by `_isinvisible_st_flags`.
         
         
         #=== Case 4: Packages and bundles ===#
@@ -149,7 +158,7 @@ include("docs.jl")
         
         
         #=== All macOS cases ===#
-        _ishidden_macos(f::AbstractString) = _ishidden_bsd_related(f) || _issystemfile(f) || _exists_inside_package_or_bundle(f)
+        _ishidden_macos(f::AbstractString) = _ishidden_bsd_related(f) || _issystemdir(f) || _isinvisible_macos_item_info(f) || _exists_inside_package_or_bundle(f)
         _ishidden = _ishidden_macos
     elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
         _ishidden_bsd(f::AbstractString) = _ishidden_bsd_related(f)

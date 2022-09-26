@@ -25,15 +25,30 @@ using Test
                 
                 # Case 2: UNIX-specific directories
                 # TODO: complete this case
-                @test HiddenFiles.ishidden("/bin/")
-                @test HiddenFiles.ishidden("/dev/")
-                @test HiddenFiles.ishidden("/usr/")
-                @test !HiddenFiles.ishidden("/tmp/")
-                
+                @test HiddenFiles.ishidden("/bin")
+                @test HiddenFiles.ishidden("/dev")
+                @test HiddenFiles.ishidden("/dev")
+                @test HiddenFiles.ishidden("/etc")
+                @test HiddenFiles.ishidden("/sbin")
+                @test HiddenFiles.ishidden("/sbin")
+                @test HiddenFiles.ishidden("/tmp")
+                @test HiddenFiles.ishidden("/usr")
+                @test HiddenFiles.ishidden("/var")
+                @test HiddenFiles._isinvisible_macos_item_info("/bin")
+                @test HiddenFiles._isinvisible_macos_item_info("/dev")
+                @test HiddenFiles._isinvisible_macos_item_info("/dev")
+                @test HiddenFiles._isinvisible_macos_item_info("/etc")
+                @test HiddenFiles._isinvisible_macos_item_info("/sbin")
+                @test HiddenFiles._isinvisible_macos_item_info("/sbin")
+                @test HiddenFiles._isinvisible_macos_item_info("/tmp")
+                @test HiddenFiles._isinvisible_macos_item_info("/usr")
+                @test HiddenFiles._isinvisible_macos_item_info("/var")
+                @test !HiddenFiles._isinvisible_macos_item_info("/bin/bash")
+
                 # Case 3: Explicitly hidden files and directories
-                @test HiddenFiles._isinvisible("/Volumes")
+                @test HiddenFiles._isinvisible_st_flags("/Volumes")
                 @test ishidden("/Volumes")
-                @test !HiddenFiles._isinvisible(p′)
+                @test !HiddenFiles._isinvisible_st_flags(p′)
                 
                 # Case 4: Packages and bundles
                 @test !ishidden("/System/Applications/Utilities/Terminal.app")
@@ -41,7 +56,8 @@ using Test
                 @test ishidden("/System/Applications/Utilities/Terminal.app/Contents/")  # This should be the same as above, as we expand all paths using realpath
                 @test !HiddenFiles._ispackage_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
-                @test !HiddenFiles._exists_inside_package_or_bundle("/bin/")
+                @test !HiddenFiles._exists_inside_package_or_bundle("/bin")
+                @test !HiddenFiles._exists_inside_package_or_bundle("/tmp")
                 f = String(rand(Char, 32))  # this path shouldn't exist
                 cfstr_nonexistent = HiddenFiles._cfstring_create_with_cstring(f)
                 @test_throws Exception HiddenFiles._mditem_create(cfstr_nonexistent)
@@ -56,9 +72,9 @@ using Test
             # TODO: should we not only support FreeBSD?  Are we testing on other BSD systems?  OpenBSD?
             @testset "HiddenFiles.jl—FreeBSD" begin
                 @test ishidden(p)
-                @test !HiddenFiles._isinvisible(p)
+                @test !HiddenFiles._isinvisible_st_flags(p)
                 @test ishidden(p′)
-                @test !HiddenFiles._isinvisible(p′)
+                @test !HiddenFiles._isinvisible_st_flags(p′)
                 @test !ishidden(homedir())
                 @test !ishidden("/bin/")
                 @test !ishidden("/dev/")
