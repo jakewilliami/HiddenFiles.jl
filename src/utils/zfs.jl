@@ -43,10 +43,13 @@ const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SU
     end
 else
     # If Julia version < 1.6, we have to write our own, not very nice solution
+    
+    # It occurred to me that UInt8 wasn't always enough to store the f_type (eda1c22)
+    const STATFS_BUF_ELTYPE = UInt32
+    const SIZEOF_STATFS_BUF_ELTYPE = Int8(sizeof(STATFS_BUF_ELTYPE))
+    
     @static if Sys.isapple()
         # macOS: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/statfs.2.html
-        const STATFS_BUF_ELTYPE = UInt32
-        const SIZEOF_STATFS_BUF_ELTYPE = Int8(sizeof(STATFS_BUF_ELTYPE))
         const SIZEOF_STATFS = cld(2168, SIZEOF_STATFS_BUF_ELTYPE)
         const F_TYPE_OFFSET = cld(0x3d, SIZEOF_STATFS_BUF_ELTYPE)
         const F_FSSUBTYPE_OFFSET = cld(0x45, SIZEOF_STATFS_BUF_ELTYPE)
@@ -56,14 +59,11 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            # return buf
             @info buf[F_TYPE_OFFSET], buf[F_FSSUBTYPE_OFFSET], buf
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS || buf[F_FSSUBTYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isbsd()
         # https://www.freebsd.org/cgi/man.cgi?query=statfs&sektion=2
-        const STATFS_BUF_ELTYPE = UInt32
-        const SIZEOF_STATFS_BUF_ELTYPE = Int8(sizeof(STATFS_BUF_ELTYPE))
         const SIZEOF_STATFS = cld(2344, SIZEOF_STATFS_BUF_ELTYPE)
         const F_TYPE_OFFSET = cld(0x05, SIZEOF_STATFS_BUF_ELTYPE)
         
@@ -72,14 +72,11 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            # return buf
             @info buf[F_TYPE_OFFSET], buf
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isunix()
         # Linux: https://man7.org/linux/man-pages/man2/statfs.2.html
-        const STATFS_BUF_ELTYPE = UInt32
-        const SIZEOF_STATFS_BUF_ELTYPE = Int8(sizeof(STATFS_BUF_ELTYPE))
         const SIZEOF_STATFS = cld(120, SIZEOF_STATFS_BUF_ELTYPE)
         const F_TYPE_OFFSET = cld(0x01, SIZEOF_STATFS_BUF_ELTYPE)
         
@@ -88,7 +85,6 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            # return buf
             @info buf[F_TYPE_OFFSET]
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
