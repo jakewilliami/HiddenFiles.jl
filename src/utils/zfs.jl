@@ -34,6 +34,23 @@ function iszfs(f::AbstractString)
     return s.ftype ∈ ZFS_SUPER_MAGICS
 end
 
+
+#=
+#include <stdio.h>
+#include <stddef.h>
+#include <sys/param.h>
+#include <sys/mount.h>
+
+int main() {
+	struct statfs st;
+    printf("offsetof(struct statfs, f_type): 0x%lx\n", offsetof(struct statfs, f_type));
+	statfs("/", &st);
+	printf("st.f_type: 0x%llx\n", (uint64_t) st.f_type);
+    return 0;
+}
+
+=#
+
 @static if Sys.isapple()
     # macOS: https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/statfs.2.html
 
