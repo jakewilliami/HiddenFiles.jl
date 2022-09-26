@@ -59,7 +59,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            @info buf[F_TYPE_OFFSET], buf[F_FSSUBTYPE_OFFSET], buf
+            @info buf[F_TYPE_OFFSET], buf[F_FSSUBTYPE_OFFSET], buf, f
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS || buf[F_FSSUBTYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isbsd()
@@ -72,7 +72,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            @info buf[F_TYPE_OFFSET], buf
+            @info buf[F_TYPE_OFFSET], buf, f
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isunix()
@@ -85,7 +85,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            @info buf[F_TYPE_OFFSET]
+            @info buf[F_TYPE_OFFSET], buf, f
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     else
