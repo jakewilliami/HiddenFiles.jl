@@ -171,7 +171,7 @@ Determines if the specified file or directory on macOS is hidden from ordinary d
 
 The file is considered hidden if any of these questions are true.
 
-For more information on hidden files in macOS, please see [this article](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html).
+For more information on hidden files in macOS, please see [this article](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html#//apple_ref/doc/uid/TP40010672-CH2-SW7).
 
 See also: [`_ishidden_unix`](@ref), [`_ishidden_bsd_related`](@ref), [`_isinvisible`](@ref), [`_issystemfile`](@ref), [`_exists_inside_package_or_bundle`](@ref), [`_ishidden_zfs`](@ref).
 """

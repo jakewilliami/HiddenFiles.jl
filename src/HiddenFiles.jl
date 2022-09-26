@@ -67,7 +67,7 @@ include("docs.jl")
         include("utils/darwin.jl")
         
         ###=== Hidden Files and Directories: Simplifying the User Experience ===##
-        ##=== https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html ===##
+        ##=== https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html#//apple_ref/doc/uid/TP40010672-CH2-SW7 ===#
         
         #=== Case 1: Dot directories and files ===#
         # Any file or directory whose name starts with a period (`.`) character is hidden automatically.  This convention is taken from UNIX, 
