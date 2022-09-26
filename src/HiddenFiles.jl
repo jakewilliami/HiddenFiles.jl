@@ -30,13 +30,14 @@ include("docs.jl")
     include("utils/zfs.jl")
     if iszfs()  # @static breaks here # ZFS
         error("not yet implemented")
-        _ishidden_zfs(f::AbstractString) = error("not yet implemented")
+        _ishidden_zfs(f::AbstractString, rp::AbstractString) = error("not yet implemented")
+        _ishidden = _ishidden_zfs
     end
     
     # Trivial Unix check
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
     # Check dotfiles, but also account for ZFS
-    _ishidden_unix(f::AbstractString) = _isdotfile(realpath(f)) || (iszfs() && _ishidden_zfs())
+    _ishidden_unix(f::AbstractString, rp::AbstractString) = _isdotfile(rp) || (iszfs() && _ishidden_zfs("", ""))
     
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
@@ -63,7 +64,7 @@ include("docs.jl")
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
         _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
         
-        _ishidden_bsd_related(f::AbstractString) = _ishidden_unix(f) || _isinvisible(f)
+        _ishidden_bsd_related(f::AbstractString, rp::AbstractString) = _ishidden_unix(f, rp) || _isinvisible(rp)
     end
     
     @static if Sys.isapple()  # macOS/Darwin
@@ -142,7 +143,7 @@ include("docs.jl")
         function _exists_inside_package_or_bundle(f::AbstractString)
             # This function necessitates that f has is modified with the realpath function, as if it hasn't,
             # it is possible that f has a trailing slash, meaning its dirname is still itself
-            f = dirname(realpath(f))
+            f = dirname(f)
             
             # We can't check the root directory, as this doesn't have any metadata information, so
             # _k_mditem_content_type_tree will fail.  Otherwise, we start at the parent directory of the
@@ -156,10 +157,10 @@ include("docs.jl")
         
         
         #=== All macOS cases ===#
-        _ishidden_macos(f::AbstractString) = _ishidden_bsd_related(f) || _issystemfile(f) || _exists_inside_package_or_bundle(f)
+        _ishidden_macos(f::AbstractString, rp::AbstractString) = _ishidden_bsd_related(f, rp) || _issystemfile(f) || _exists_inside_package_or_bundle(rp)
         _ishidden = _ishidden_macos
     elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
-        _ishidden_bsd(f::AbstractString) = _ishidden_bsd_related(f)
+        _ishidden_bsd(f::AbstractString, rp::AbstractString) = _ishidden_bsd_related(f, rp)
         _ishidden = _ishidden_bsd
     else  # General UNIX
         _ishidden = _ishidden_unix
@@ -171,10 +172,10 @@ elseif Sys.iswindows()
     const FILE_ATTRIBUTE_HIDDEN = 0x2
     const FILE_ATTRIBUTE_SYSTEM = 0x4
     
-    function _ishidden_windows(f::AbstractString)
+    function _ishidden_windows(f::AbstractString, rp::AbstractString)
         # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
         # DWORD GetFileAttributesA([in] LPCSTR lpFileName);
-        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), f)
+        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), rp)
         
         # https://stackoverflow.com/a/1343643/12069968
         # https://stackoverflow.com/a/14063074/12069968
@@ -189,8 +190,13 @@ end
 # Each OS branch defines its own _ishidden function.  In the main ishidden function, we check that the path exists, expand
 # the real path out, and apply the branch's _ishidden function to that path to get a final result
 function ishidden(f::AbstractString)
-    ispath(realpath(f)) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
-    return _ishidden(f)
+    try
+        rp = realpath(f)
+    catch e
+        isa(e, Base.IOError) && throw(Base.uv_error("ishidden($(repr(f)))", e.code))
+        rethrow()
+    end
+    return _ishidden(f, realpath(f))
 end
 
 

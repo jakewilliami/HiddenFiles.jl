@@ -1,6 +1,9 @@
 using HiddenFiles
 using Test
+
 @testset "HiddenFiles.jl" begin
+    randpath(path_len::Integer = 64) = String(rand(Char, path_len))  # this path shouldn't exist
+    
     @static if Sys.isunix()
         function mk_temp_dot_file(parent::String = tempdir())
             tmp_hidden = joinpath(parent, '.' * basename(tempname()))
@@ -46,7 +49,7 @@ using Test
                 @test !HiddenFiles._ispackage_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test HiddenFiles._exists_inside_package_or_bundle("/System/Applications/Utilities/Terminal.app/Contents/")
                 @test !HiddenFiles._exists_inside_package_or_bundle("/bin/")
-                f = String(rand(Char, 32))  # this path shouldn't exist
+                f = randpath()
                 cfstr_nonexistent = HiddenFiles._cfstring_create_with_cstring(f)
                 @test_throws Exception HiddenFiles._mditem_create(cfstr_nonexistent)
                 encoding_mode_nonexistent = 0x1c000101  # this encoding mode should not exist
@@ -99,5 +102,11 @@ using Test
             # TODO
             @test false
         end
+    end
+    
+    
+    @testset "HiddenFiles.jl—Path Handling" begin
+        f = randpath()
+        @test_throws Base.IOError ishidden(f)
     end
 end
