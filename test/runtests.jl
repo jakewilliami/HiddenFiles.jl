@@ -16,7 +16,7 @@ using Test
         @testset "HiddenFiles.jl—General UNIX" begin
             @test ishidden(p)
             @test !ishidden(homedir())
-            @test_throws Base.IOError HiddenFiles.ishidden("~/$(basename(p′))")
+            @test_throws Union{Base.IOError, SystemError} HiddenFiles.ishidden("~/$(basename(p′))")
             @test HiddenFiles.ishidden(expanduser("~/$(basename(p′))"))
         end
         
