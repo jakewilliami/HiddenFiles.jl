@@ -8,6 +8,7 @@ const LINUX_ZFS_SUPER_MAGIC = 0x2fc12fc1
 
 const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SUPER_MAGIC)
 
+# TODO: change this back to < 1.6
 @static if VERSION == v"1.6"
     @static if VERSION < v"1.8"
         # Adapted from Julia 1.8's diskstat: https://github.com/JuliaLang/julia/pull/42248
@@ -54,7 +55,7 @@ else
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            @info buf[F_TYPE_OFFSET], buf[F_FSSUBTYPE_OFFSET]
+            @info buf[F_TYPE_OFFSET], buf[F_FSSUBTYPE_OFFSET], buf
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS || buf[F_FSSUBTYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isbsd()
@@ -63,11 +64,11 @@ else
         const F_TYPE_OFFSET = 0x05
         
         function _iszfs(f::AbstractString)
-            buf = Vector{UInt8}(undef, SIZEOF_STATFS)
+            buf = Vector{UInt32}(undef, SIZEOF_STATFS)
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
             i < 0 && Base.uv_error("statfs($(repr(f)))", i)
-            @info buf[F_TYPE_OFFSET]
+            @info buf[F_TYPE_OFFSET], buf
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     elseif Sys.isunix()
