@@ -8,7 +8,7 @@ const LINUX_ZFS_SUPER_MAGIC = 0x2fc12fc1
 
 const ZFS_SUPER_MAGICS = (SUN_ZFS_SUPER_MAGIC, BSD_ZFS_SUPER_MAGIC, LINUX_ZFS_SUPER_MAGIC)
 
-@static if VERSION ≤ v"1.6"
+@static if VERSION ≥ v"1.6"
     @static if VERSION < v"1.8"
         # Adapted from Julia 1.8's diskstat: https://github.com/JuliaLang/julia/pull/42248
         # C calls for UV statfs requires Julia 1.6
