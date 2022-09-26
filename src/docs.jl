@@ -12,8 +12,17 @@ See also: [`_ishidden_unix`](@ref), [`_ishidden_windows`](@ref), [`_ishidden_mac
 _ishidden
 
 ### ZFS ###
-"This function is not yet implemented"
-iszfs
+"""
+```julia
+_iszfs(f::AbstractString) -> Bool
+```
+
+Determines if the file system that `f` exists on is ZFS.
+
+!!! note
+    This is only implemented for Unix-like systems, as I have not seen ZFS for Windows.
+"""
+_iszfs
 
 "This function is not yet implemented"
 _ishidden_zfs

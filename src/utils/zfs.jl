@@ -49,7 +49,7 @@ int main() {
         statfs = diskstat
     end
     
-    function iszfs(f::AbstractString)
+    function _iszfs(f::AbstractString)
         s = statfs(f)
         return s.ftype ∈ ZFS_SUPER_MAGICS
     end
@@ -61,7 +61,7 @@ else
         const F_TYPE_OFFSET = 0x3d
         const F_FSSUBTYPE_OFFSET = 0x45
         
-        function iszfs(f::AbstractString)
+        function _iszfs(f::AbstractString)
             buf = Vector{UInt8}(undef, SIZEOF_STATFS)
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
@@ -73,7 +73,7 @@ else
         const SIZEOF_STATFS = 2344
         const F_TYPE_OFFSET = 0x05
         
-        function iszfs(f::AbstractString)
+        function _iszfs(f::AbstractString)
             buf = Vector{UInt8}(undef, SIZEOF_STATFS)
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
@@ -85,7 +85,7 @@ else
         const SIZEOF_STATFS = error("not yet implemented")
         const F_TYPE_OFFSET = error("not yet implemented")
         
-        function iszfs(f::AbstractString)
+        function _iszfs(f::AbstractString)
             buf = zeros(UInt8, SIZEOF_STATFS)
             # statfs(const char *path, struct statfs *buf);
             i = ccall(:statfs, Int, (Cstring, Ptr{Cvoid}), f, buf)
@@ -93,7 +93,7 @@ else
             return buf[F_TYPE_OFFSET] ∈ ZFS_SUPER_MAGICS
         end
     else
-        iszfs() = error("Cannot call statfs for non-Unix operating systems")
+        _iszfs(_f::AbstractString) = error("Cannot call statfs for non-Unix operating systems")
     end
 end
 
