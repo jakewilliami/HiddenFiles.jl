@@ -6,7 +6,9 @@
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
 
-A simple tool to determine if a file directory is hidden.  Works on any&trade; file system!
+A simple tool to determine if a file directory is hidden.  Works on any&trade; OS and file system!
+
+This library exports one function: `ishidden`.  Typically, a file or directory is classified as "hidden" if is it hidden from a normal directory listing.  See [the documentation](https://jakewilliami.github.io/HiddenFiles.jl/dev) for notes on the behaviour of `ishidden`.
 
 ## Quick Start
 
@@ -14,6 +16,7 @@ A simple tool to determine if a file directory is hidden.  Works on any&trade; f
 julia> using HiddenFiles
 
 julia> is_hidden("$(homedir())/.bashrc")
+true
 ```
 
 ## History
