@@ -25,19 +25,20 @@ On Unix-like systems, a file or directory is hidden if it starts with a full sto
 ishidden
 
 include("docs.jl")
+include("path.jl")
 
 @static if Sys.isunix()
     include("utils/zfs.jl")
     if iszfs()  # @static breaks here # ZFS
         error("not yet implemented")
-        _ishidden_zfs(f::AbstractString, rp::AbstractString) = error("not yet implemented")
+        _ishidden_zfs(ps::PathStruct) = error("not yet implemented")
         _ishidden = _ishidden_zfs
     end
     
     # Trivial Unix check
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
     # Check dotfiles, but also account for ZFS
-    _ishidden_unix(f::AbstractString, rp::AbstractString) = _isdotfile(rp) || (iszfs() && _ishidden_zfs("", ""))
+    _ishidden_unix(ps::PathStruct) = _isdotfile(ps.realpath) || (iszfs() && _ishidden_zfs("", ""))
     
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
@@ -64,7 +65,7 @@ include("docs.jl")
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
         _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN    
         
-        _ishidden_bsd_related(f::AbstractString, rp::AbstractString) = _ishidden_unix(f, rp) || _isinvisible(rp)
+        _ishidden_bsd_related(ps::PathStruct) = _ishidden_unix(ps) || _isinvisible(ps.realpath)
     end
     
     @static if Sys.isapple()  # macOS/Darwin
@@ -157,10 +158,10 @@ include("docs.jl")
         
         
         #=== All macOS cases ===#
-        _ishidden_macos(f::AbstractString, rp::AbstractString) = _ishidden_bsd_related(f, rp) || _issystemfile(f) || _exists_inside_package_or_bundle(rp)
+        _ishidden_macos(ps::PathStruct) = _ishidden_bsd_related(ps) || _issystemfile(ps.path) || _exists_inside_package_or_bundle(ps.realpath)
         _ishidden = _ishidden_macos
     elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
-        _ishidden_bsd(f::AbstractString, rp::AbstractString) = _ishidden_bsd_related(f, rp)
+        _ishidden_bsd(ps::PathStruct) = _ishidden_bsd_related(ps)
         _ishidden = _ishidden_bsd
     else  # General UNIX
         _ishidden = _ishidden_unix
@@ -172,10 +173,10 @@ elseif Sys.iswindows()
     const FILE_ATTRIBUTE_HIDDEN = 0x2
     const FILE_ATTRIBUTE_SYSTEM = 0x4
     
-    function _ishidden_windows(f::AbstractString, rp::AbstractString)
+    function _ishidden_windows(ps::PathStruct)
         # https://docs.microsoft.com/en-gb/windows/win32/api/fileapi/nf-fileapi-getfileattributesa
         # DWORD GetFileAttributesA([in] LPCSTR lpFileName);
-        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), rp)
+        f_attrs = ccall(:GetFileAttributesA, UInt32, (Cstring,), ps.realpath)
         
         # https://stackoverflow.com/a/1343643/12069968
         # https://stackoverflow.com/a/14063074/12069968
@@ -187,29 +188,11 @@ else
 end
 
 
-# Each OS branch defines its own _ishidden function.  In the main ishidden function, we check that the path exists, expand
-# the real path out, and apply the branch's _ishidden function to that path to get a final result
+# Each OS branch defines its own _ishidden function.  In the main ishidden function, we check construct
+# our PathStruct object to pass around to the branch's _ishidden function to use as the function necessitates
 function ishidden(f::AbstractString)
-    # If path does not exist, `realpath` will error™
-    local rp::String
-    try
-        rp = realpath(f)
-    catch e
-        err_prexif = "ishidden($(repr(f)))"
-        # Julia < 1.3 throws a SystemError when `realpath` fails
-        isa(e, SystemError) && throw(SystemError(err_prexif, e.errnum))
-        # Julia ≥ 1.3 throws an IOError, constructed from UV Error codes
-        isa(e, Base.IOError) && throw(Base.uv_error(err_prexif, e.code))
-        # If this fails for some other reason, rethrow
-        rethrow()
-    end
-    
-    # Julia < 1.2 on Windows does not error on `realpath` if path does not exist, so we
-    # must do so manually here
-    ispath(rp) || throw(Base.uv_error("ishidden($(repr(f)))", Base.UV_ENOENT))
-    
-    # If we got here, the path exists, and we can continue safely with our _ishidden checks
-    return _ishidden(f, rp)
+    ps = PathStruct(f; err_prefix = :ishidden)
+    return _ishidden(ps)
 end
 
 
