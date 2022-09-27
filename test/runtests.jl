@@ -105,9 +105,27 @@ using Test
     end
     
     
-    @testset "HiddenFiles.jl—Path Handling" begin
+    @testset "HiddenFiles.jl—Path Handling (PathStruct)" begin
+        @static if Sys.isunix()
+            @test HiddenFiles.PathStruct("/bin", "/bin") isa HiddenFiles.PathStruct
+            @test HiddenFiles.PathStruct("/../bin", "/bin") isa HiddenFiles.PathStruct
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("/bin", "/../bin") 
+            
+
+        elseif Sys.iswindows()
+            @test HiddenFiles.PathStruct("C:\\", "C:\\") isa HiddenFiles.PathStruct
+            @test HiddenFiles.PathStruct("C:\\..\\", "C:\\") isa HiddenFiles.PathStruct
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("C:\\", "C:\\..\\") 
+        else
+            # TODO
+            @test false
+        end
+        
         f = randpath()
         # Julia < 1.3 throws a SystemError when `realpath` fails
+        @test_throws Union{Base.IOError, SystemError} HiddenFiles.PathStruct(f)
+        @test_throws Union{Base.IOError, SystemError} HiddenFiles.PathStruct(f, "")
+        # ishidden calls to PathStruct
         @test_throws Union{Base.IOError, SystemError} ishidden(f)
     end
 end
