@@ -28,16 +28,15 @@ include("docs.jl")
 
 @static if Sys.isunix()
     include("utils/zfs.jl")
-    if iszfs()  # @static breaks here # ZFS
-        error("not yet implemented")
-        _ishidden_zfs(f::AbstractString, rp::AbstractString) = error("not yet implemented")
-        _ishidden = _ishidden_zfs
-    end
     
+    function _ishidden_zfs(f::AbstractString, rp::AbstractString)
+        error("not yet implemented")
+    end
+
     # Trivial Unix check
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
     # Check dotfiles, but also account for ZFS
-    _ishidden_unix(f::AbstractString, rp::AbstractString) = _isdotfile(rp) || (iszfs() && _ishidden_zfs("", ""))
+    _ishidden_unix(f::AbstractString, rp::AbstractString) = _isdotfile(rp) || (iszfs() && _ishidden_zfs(f, rp))
     
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
