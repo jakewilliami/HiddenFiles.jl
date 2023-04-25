@@ -131,4 +131,13 @@ using Test
         # ishidden calls to PathStruct
         @test_throws Union{Base.IOError, SystemError} ishidden(f)
     end
+
+    @testset "HiddenFiles.jl—Directory references" begin
+        @test HiddenFiles.ishidden(".")
+        @test HiddenFiles.ishidden("/bin/.")
+        @test HiddenFiles.ishidden(expanduser("~/../."))
+        @test HiddenFiles.ishidden("..")
+        @test HiddenFiles.ishidden(expanduser("~/.."))
+        @test HiddenFiles.ishidden("/bin/..")
+    end
 end

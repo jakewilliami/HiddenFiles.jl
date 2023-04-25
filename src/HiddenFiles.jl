@@ -14,6 +14,9 @@ Check if a file or directory is hidden.
 On Unix-like systems, a file or directory is hidden if it starts with a full stop/period (`U+002e`).  On Windows systems, this function will parse file attributes to determine if the given file or directory is hidden.
 
 !!! note
+    Directory references (i.e., `.` or `..`) are always hidden.  To check if the underlying path is hidden, you should run `ishidden` on its `realpath`.
+
+!!! note
     On Unix-like systems, in order to correctly determine if the file begins with a full stop, we must first expand the path to its real path.
 
 !!! note
@@ -27,6 +30,7 @@ ishidden
 include("docs.jl")
 include("path.jl")
 
+
 @static if Sys.isunix()
     include("utils/zfs.jl")
     if iszfs()  # @static breaks here # ZFS
@@ -37,8 +41,9 @@ include("path.jl")
 
     # Trivial Unix check
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
+
     # Check dotfiles, but also account for ZFS
-    _ishidden_unix(ps::PathStruct) = _isdotfile(ps.realpath) || (iszfs() && _ishidden_zfs("", ""))
+    _ishidden_unix(ps::PathStruct) = _isdotfile(ps.realpath) || (iszfs() && _ishidden_zfs(ps))
 
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
@@ -202,12 +207,16 @@ else
 end
 
 
+# Check if the file is actually a directory reference to the current or parent directory
+_isdirref(f::AbstractString) = basename(f) ∈ (".", "..")  # see issue #24
+
+
 # Each OS branch defines its own _ishidden function.  In the main ishidden function,
 # we check construct our PathStruct object to pass around to the branch's _ishidden
 # function to use as the function necessitates
 function ishidden(f::AbstractString)
     ps = PathStruct(f; err_prefix = :ishidden)
-    return _ishidden(ps)
+    return _isdirref(ps.path) || _ishidden(ps)
 end
 
 
