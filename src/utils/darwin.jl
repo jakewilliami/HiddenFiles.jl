@@ -25,7 +25,7 @@ Default string encoding for working with paths in macOS.
 
 !!! note
     You can reassign this variable so that other Core Foundation string functions implemented in this package uses your non-default string encoding.  See `K_CF_STRING_ENCODING_*` values for more string encoding options.
-    
+
     [1]: https://developer.apple.com/documentation/corefoundation/cfstringbuiltinencodings
 """
 CF_STRING_ENCODING = K_CF_STRING_ENCODING_MAC_ROMAN # K_CF_STRING_ENCODING_UTF8 or UTF16 doesn't seem to work
@@ -44,7 +44,7 @@ See also: [`_string_from_cf_string`](@ref).
 function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = CF_STRING_ENCODING)
     # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring
     # CFStringRef CFStringCreateWithCString(CFAllocatorRef alloc, const char *cStr, CFStringEncoding encoding);
-    cfstr = ccall(:CFStringCreateWithCString, Cstring, 
+    cfstr = ccall(:CFStringCreateWithCString, Cstring,
                   (Ptr{Cvoid}, Cstring, UInt32),
                   C_NULL, s, encoding)
     cfstr == C_NULL && error("Cannot create CF String for $(repr(s)) using encoding $(repr(encoding))")
@@ -195,4 +195,3 @@ function _string_from_cf_string(cfstr::Cstring, encoding::Unsigned = CF_STRING_E
     end
     return String(take!(cfio))
 end
-

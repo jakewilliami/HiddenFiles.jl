@@ -3,41 +3,41 @@ using Test
 
 @testset "HiddenFiles.jl" begin
     randpath(path_len::Integer = 64) = String(rand(Char, path_len))  # this path shouldn't exist
-    
+
     @static if Sys.isunix()
         function mk_temp_dot_file(parent::String = tempdir())
             tmp_hidden = joinpath(parent, '.' * basename(tempname()))
             touch(tmp_hidden)
             return tmp_hidden
         end
-        
+
         p, p′ = mk_temp_dot_file(), mk_temp_dot_file(homedir())
-        
+
         @testset "HiddenFiles.jl—General UNIX" begin
             @test ishidden(p)
             @test !ishidden(homedir())
             @test_throws Union{Base.IOError, SystemError} HiddenFiles.ishidden("~/$(basename(p′))")
             @test HiddenFiles.ishidden(expanduser("~/$(basename(p′))"))
         end
-        
+
         @static if Sys.isapple()
             @testset "HiddenFiles.jl—macOS" begin
                 # Case 1: Dot directories and files
                 @test ishidden(p)
                 @test !ishidden(homedir())
-                
+
                 # Case 2: UNIX-specific directories
                 # TODO: complete this case
                 @test HiddenFiles.ishidden("/bin/")
                 @test HiddenFiles.ishidden("/dev/")
                 @test HiddenFiles.ishidden("/usr/")
                 @test !HiddenFiles.ishidden("/tmp/")
-                
+
                 # Case 3: Explicitly hidden files and directories
                 @test HiddenFiles._isinvisible("/Volumes")
                 @test ishidden("/Volumes")
                 @test !HiddenFiles._isinvisible(p′)
-                
+
                 # Case 4: Packages and bundles
                 @test !ishidden("/System/Applications/Utilities/Terminal.app")
                 @test ishidden("/System/Applications/Utilities/Terminal.app/Contents")
@@ -85,7 +85,7 @@ using Test
                 @test !ishidden("/tmp/")
             end
         end
-        
+
         rm(p); rm(p′)
     elseif Sys.iswindows()
         @testset "HiddenFiles.jl—Windows" begin
@@ -103,11 +103,32 @@ using Test
             @test false
         end
     end
-    
-    
-    @testset "HiddenFiles.jl—Path Handling" begin
+
+
+    @testset "HiddenFiles.jl—Path Handling (PathStruct)" begin
+        @static if Sys.isunix()
+            bin_rp = Sys.islinux() ? "/usr/bin" : "/bin"
+
+            @test HiddenFiles.PathStruct("/bin", bin_rp) isa HiddenFiles.PathStruct
+            @test HiddenFiles.PathStruct("/../bin", bin_rp) isa HiddenFiles.PathStruct
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("/bin", "/../bin")
+            @test HiddenFiles.PathStruct("/../bin").realpath == bin_rp
+            @test HiddenFiles.PathStruct(".").path == "."
+
+        elseif Sys.iswindows()
+            @test HiddenFiles.PathStruct("C:\\", "C:\\") isa HiddenFiles.PathStruct
+            @test HiddenFiles.PathStruct("C:\\..\\", "C:\\") isa HiddenFiles.PathStruct
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("C:\\", "C:\\..\\")
+        else
+            # TODO
+            @test false
+        end
+
         f = randpath()
         # Julia < 1.3 throws a SystemError when `realpath` fails
+        @test_throws Union{Base.IOError, SystemError} HiddenFiles.PathStruct(f)
+        @test_throws Union{Base.IOError, SystemError} HiddenFiles.PathStruct(f, "")
+        # ishidden calls to PathStruct
         @test_throws Union{Base.IOError, SystemError} ishidden(f)
     end
 end
