@@ -107,10 +107,12 @@ using Test
 
     @testset "HiddenFiles.jl—Path Handling (PathStruct)" begin
         @static if Sys.isunix()
-            @test HiddenFiles.PathStruct("/bin", "/bin") isa HiddenFiles.PathStruct
-            @test HiddenFiles.PathStruct("/../bin", "/bin") isa HiddenFiles.PathStruct
+            bin_rp = Sys.islinux() ? "/usr/bin" : "/bin"
+
+            @test HiddenFiles.PathStruct("/bin", bin_rp) isa HiddenFiles.PathStruct
+            @test HiddenFiles.PathStruct("/../bin", bin_rp) isa HiddenFiles.PathStruct
             @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("/bin", "/../bin")
-            @test HiddenFiles.PathStruct("/../bin").realpath == "/bin"
+            @test HiddenFiles.PathStruct("/../bin").realpath == bin_rp
             @test HiddenFiles.PathStruct(".").path == "."
 
         elseif Sys.iswindows()
