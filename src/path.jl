@@ -1,3 +1,14 @@
+"""
+```julia
+struct InvalidRealPathError{S1, S2} <: Exception
+    msg::String
+    expected::S1
+    actual::S2
+end
+```julia
+
+Custom exception used by [`PathStruct`](@ref) for when real path given to the struct is not the actual real path.
+"""
 struct InvalidRealPathError{S1, S2} <: Exception
     msg::String
     expected::S1
@@ -10,6 +21,18 @@ function Base.showerror(io::IO, e::InvalidRealPathError)
     print(io, "found ", '"', e.actual, '"')
 end
 
+"""
+```julia
+struct PathStruct{S1, S2}
+    path::S1
+    realpath::S2
+end
+PathStruct(path::S1, rp::S2) where {S1 <: AbstractString, S2 <: AbstractString}
+PathStruct(path::S; err_prefix::Symbol = :ishidden) where {S <: AbstractString}
+```
+
+Convenient path object to pass around to various functions used by HiddenFiles.jl.
+"""
 struct PathStruct{S1, S2}
     path::S1
     realpath::S2
@@ -34,10 +57,13 @@ struct PathStruct{S1, S2}
             rp = realpath(path)
         catch e
             err_prexif = "$(err_prefix)(PathStruct($(repr(path))))"
+
             # Julia < 1.3 throws a SystemError when `realpath` fails
             isa(e, SystemError) && throw(SystemError(err_prexif, e.errnum))
+
             # Julia ≥ 1.3 throws an IOError, constructed from UV Error codes
             isa(e, Base.IOError) && throw(Base.uv_error(err_prexif, e.code))
+
             # If this fails for some other reason, rethrow
             rethrow()
         end
