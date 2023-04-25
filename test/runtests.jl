@@ -133,11 +133,11 @@ using Test
     end
 
     @testset "HiddenFiles.jl—Directory references" begin
+        d = homedir()
         @test HiddenFiles.ishidden(".")
-        @test HiddenFiles.ishidden("/bin/.")
-        @test HiddenFiles.ishidden(expanduser("~/../."))
+        @test HiddenFiles.ishidden(joinpath(d, "."))
+        @test HiddenFiles.ishidden(joinpath(d, "..", "."))
         @test HiddenFiles.ishidden("..")
-        @test HiddenFiles.ishidden(expanduser("~/.."))
-        @test HiddenFiles.ishidden("/bin/..")
+        @test HiddenFiles.ishidden(joinpath(d, ".."))
     end
 end
