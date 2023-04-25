@@ -59,7 +59,7 @@ const UF_HIDDEN = 0x00008000
 
 The flag on macOS or BSD systems specifying whether the file may be hidden from directory.
 
-See `chflags`:    
+See `chflags`:
   - [macOS](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html)
   - [BSD](https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2)
 """
@@ -242,4 +242,3 @@ Determine if the specified file or directory is hidden from ordinary directory l
     This function necessitates/expects that the file given to it is its real path.
 """
 _ishidden_windows
-
