@@ -38,8 +38,8 @@ struct PathStruct{S1, S2}
     realpath::S2
 
     function PathStruct(path::S1, rp::S2) where {S1 <: AbstractString, S2 <: AbstractString}
-        ispath(rp) || throw(Base.uv_error("PathStruct($(repr(path)))", Base.UV_ENOENT))
-        # TODO: this will fail if path is not valid
+        ispath(path) || throw(Base.uv_error("PathStruct($(repr(path)))", Base.UV_ENOENT))
+        ispath(rp) || throw(Base.uv_error("PathStruct($(repr(rp)))", Base.UV_ENOENT))
         realpath(path) == rp ||
             throw(InvalidRealPathError("PathStruct($(repr(path)))", realpath(path), rp))
         return new{S1, S2}(path, rp)
