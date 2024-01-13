@@ -24,6 +24,12 @@ On Unix-like systems, a file or directory is hidden if it starts with a full sto
 
 !!! note
     On macOS, any file or directory within a [package](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html) or a [bundle](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html) will also be considered hidden.
+
+!!! note
+    There may be some UNIX-specific system directories in macOS that are not yet classified as hidden ([#18](https://github.com/jakewilliami/HiddenFiles.jl/pull/18)).
+
+!!! note
+    Mount points on ZFS are not yet classified as hidden ([#20](https://github.com/jakewilliami/HiddenFiles.jl/pull/20)).
 """
 ishidden
 
