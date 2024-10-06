@@ -23,3 +23,6 @@ true
 
 The origin of this project comes from [`julia#38841`](https://github.com/JuliaLang/julia/issues/38841).
 
+## Citation
+
+If your research depends on HiddenFiles.jl, please consider giving us a formal citation: [`citation.bib`](./citation.bib).
