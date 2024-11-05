@@ -1,5 +1,4 @@
-include(joinpath(dirname(@__DIR__), "src", "HiddenFiles.jl"))
-using Documenter, .HiddenFiles
+using HiddenFiles, Documenter
 
 Documenter.makedocs(
     clean = true,
