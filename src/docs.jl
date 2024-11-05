@@ -20,7 +20,6 @@ iszfs
 "This function is not yet implemented"
 _ishidden_zfs
 
-
 ### General Unix ###
 
 """
@@ -48,7 +47,6 @@ See also: [`_isdotfile`](@ref), [`_ishidden_zfs`](@ref).
     This function expects the path given to be a normalised/real path, so that the base name of the path can be correctly assessed.
 """
 _ishidden_unix
-
 
 ### macOS/BSD ###
 
@@ -112,7 +110,6 @@ Determines if a file or directory on a BSD-related system (i.e., macOS or BSD) i
 See also: [`_ishidden_unix`](@ref), [`isinvisible`](@ref).
 """
 _ishidden_bsd_related
-
 
 ### macOS ###
 
@@ -191,7 +188,6 @@ See also: [`_ishidden_unix`](@ref), [`_ishidden_bsd_related`](@ref), [`_isinvisi
 """
 _ishidden_macos
 
-
 ### BSD ###
 
 """
@@ -209,7 +205,6 @@ The file is considered hidden if any of these questions are true.
 See also: [`_ishidden_unix`](@ref), [`_ishidden_bsd_related`](@ref), [`_isinvisible`](@ref), [`_ishidden_zfs`](@ref).
 """
 _ishidden_bsd
-
 
 ### Windows ###
 

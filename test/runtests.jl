@@ -53,11 +53,15 @@ using Test
                 cfstr_nonexistent = HiddenFiles._cfstring_create_with_cstring(f)
                 @test_throws Exception HiddenFiles._mditem_create(cfstr_nonexistent)
                 encoding_mode_nonexistent = 0x1c000101  # this encoding mode should not exist
-                @test_throws Exception HiddenFiles._cfstring_create_with_cstring("Julia", encoding_mode_nonexistent)
+                @test_throws Exception HiddenFiles._cfstring_create_with_cstring(
+                    "Julia", encoding_mode_nonexistent
+                )
                 cfstr = HiddenFiles._cfstring_create_with_cstring(@__FILE__)
                 mditem = HiddenFiles._mditem_create(cfstr)
                 cfattr_nonexistent = HiddenFiles._cfstring_create_with_cstring("kMDItemNonexistentAttributeName")
-                @test_throws Exception HiddenFiles._mditem_copy_attribute(mditem, cfattr_nonexistent)
+                @test_throws Exception HiddenFiles._mditem_copy_attribute(
+                    mditem, cfattr_nonexistent
+                )
             end
         elseif Sys.isbsd()
             # TODO: should we not only support FreeBSD?  Are we testing on other BSD systems?  OpenBSD?
@@ -86,7 +90,8 @@ using Test
             end
         end
 
-        rm(p); rm(p′)
+        rm(p)
+        rm(p′)
     elseif Sys.iswindows()
         @testset "HiddenFiles.jl—Windows" begin
             @test !ishidden("C:\\Windows\\system32\\")
@@ -104,21 +109,24 @@ using Test
         end
     end
 
-
     @testset "HiddenFiles.jl—Path Handling (PathStruct)" begin
         @static if Sys.isunix()
             bin_rp = Sys.islinux() ? "/usr/bin" : "/bin"
 
             @test HiddenFiles.PathStruct("/bin", bin_rp) isa HiddenFiles.PathStruct
             @test HiddenFiles.PathStruct("/../bin", bin_rp) isa HiddenFiles.PathStruct
-            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("/bin", "/../bin")
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct(
+                "/bin", "/../bin"
+            )
             @test HiddenFiles.PathStruct("/../bin").realpath == bin_rp
             @test HiddenFiles.PathStruct(".").path == "."
 
         elseif Sys.iswindows()
             @test HiddenFiles.PathStruct("C:\\", "C:\\") isa HiddenFiles.PathStruct
             @test HiddenFiles.PathStruct("C:\\..\\", "C:\\") isa HiddenFiles.PathStruct
-            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct("C:\\", "C:\\..\\")
+            @test_throws HiddenFiles.InvalidRealPathError HiddenFiles.PathStruct(
+                "C:\\", "C:\\..\\"
+            )
         else
             # TODO
             @test false

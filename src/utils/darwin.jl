@@ -1,19 +1,19 @@
 # https://opensource.apple.com/source/CF/CF-635/CFString.h.auto.html
 # https://developer.apple.com/documentation/corefoundation/cfstringbuiltinencodings
-const K_CF_STRING_ENCODING_MAC_ROMAN       = 0x0
+const K_CF_STRING_ENCODING_MAC_ROMAN = 0x0
 const K_CF_STRING_ENCODING_WINDOWS_LATIN_1 = 0x0500      # ANSI codepage 1252
-const K_CF_STRING_ENCODING_ISO_LATIN_1     = 0x0201      # ISO 8859-1
+const K_CF_STRING_ENCODING_ISO_LATIN_1 = 0x0201      # ISO 8859-1
 const K_CF_STRING_ENCODING_NEXT_STEP_LATIN = 0x0B01      # NextStep encoding
-const K_CF_STRING_ENCODING_ASCII           = 0x0600      # 0..127 (in creating CFString, values greater than 0x7F are treated as corresponding Unicode value)
-const K_CF_STRING_ENCODING_UNICODE         = 0x0100      # kTextEncodingUnicodeDefault  + kTextEncodingDefaultFormat (aka kUnicode16BitFormat)
-const K_CF_STRING_ENCODING_UTF8            = 0x08000100  # kTextEncodingUnicodeDefault + kUnicodeUTF8Format
+const K_CF_STRING_ENCODING_ASCII = 0x0600      # 0..127 (in creating CFString, values greater than 0x7F are treated as corresponding Unicode value)
+const K_CF_STRING_ENCODING_UNICODE = 0x0100      # kTextEncodingUnicodeDefault  + kTextEncodingDefaultFormat (aka kUnicode16BitFormat)
+const K_CF_STRING_ENCODING_UTF8 = 0x08000100  # kTextEncodingUnicodeDefault + kUnicodeUTF8Format
 const K_CF_STRING_ENCODING_NON_LOSSY_ASCII = 0x0BFF      # 7bit Unicode variants used by Cocoa & Java
-const K_CF_STRING_ENCODING_UTF16           = 0x0100      # kTextEncodingUnicodeDefault + kUnicodeUTF16Format (alias of kCFStringEncodingUnicode)
-const K_CF_STRING_ENCODING_UTF16BE         = 0x10000100  # kTextEncodingUnicodeDefault + kUnicodeUTF16BEFormat
-const K_CF_STRING_ENCODING_UTF16LE         = 0x14000100  # kTextEncodingUnicodeDefault + kUnicodeUTF16LEFormat
-const K_CF_STRING_ENCODING_UTF32           = 0x0c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32Format
-const K_CF_STRING_ENCODING_UTF32BE         = 0x18000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32BEFormat
-const K_CF_STRING_ENCODING_UTF32LE         = 0x1c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32LEFormat
+const K_CF_STRING_ENCODING_UTF16 = 0x0100      # kTextEncodingUnicodeDefault + kUnicodeUTF16Format (alias of kCFStringEncodingUnicode)
+const K_CF_STRING_ENCODING_UTF16BE = 0x10000100  # kTextEncodingUnicodeDefault + kUnicodeUTF16BEFormat
+const K_CF_STRING_ENCODING_UTF16LE = 0x14000100  # kTextEncodingUnicodeDefault + kUnicodeUTF16LEFormat
+const K_CF_STRING_ENCODING_UTF32 = 0x0c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32Format
+const K_CF_STRING_ENCODING_UTF32BE = 0x18000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32BEFormat
+const K_CF_STRING_ENCODING_UTF32LE = 0x1c000100  # kTextEncodingUnicodeDefault + kUnicodeUTF32LEFormat
 
 # This will be out main/default string encoding
 """
@@ -41,13 +41,21 @@ See also: [`_string_from_cf_string`](@ref).
 
 [1]: https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring
 """
-function _cfstring_create_with_cstring(s::AbstractString, encoding::Unsigned = CF_STRING_ENCODING)
+function _cfstring_create_with_cstring(
+    s::AbstractString, encoding::Unsigned = CF_STRING_ENCODING
+)
     # https://developer.apple.com/documentation/corefoundation/1542942-cfstringcreatewithcstring
     # CFStringRef CFStringCreateWithCString(CFAllocatorRef alloc, const char *cStr, CFStringEncoding encoding);
-    cfstr = ccall(:CFStringCreateWithCString, Cstring,
-                  (Ptr{Cvoid}, Cstring, UInt32),
-                  C_NULL, s, encoding)
-    cfstr == C_NULL && error("Cannot create CF String for $(repr(s)) using encoding $(repr(encoding))")
+    cfstr = ccall(
+        :CFStringCreateWithCString,
+        Cstring,
+        (Ptr{Cvoid}, Cstring, UInt32),
+        C_NULL,
+        s,
+        encoding,
+    )
+    cfstr == C_NULL &&
+        error("Cannot create CF String for $(repr(s)) using encoding $(repr(encoding))")
     return cfstr
 end
 
@@ -90,8 +98,11 @@ See also: [`_mditem_create`](@ref), [`_k_mditem_content_type_tree](@ref).
 function _mditem_copy_attribute(mditem::Ptr{UInt32}, cfstr_attr_name::Cstring)
     # https://developer.apple.com/documentation/coreservices/1427080-mditemcopyattribute
     # CFTypeRef MDItemCopyAttribute(MDItemRef item, CFStringRef name);
-    ptr = ccall(:MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name)
-    ptr == C_NULL && error("Cannot copy MD Item attribute $(repr(cfstr_attr_name)); this attribute name might not exist")
+    ptr = ccall(
+        :MDItemCopyAttribute, Ptr{UInt32}, (Ptr{UInt32}, Cstring), mditem, cfstr_attr_name
+    )
+    ptr == C_NULL &&
+        error("Cannot copy MD Item attribute $(repr(cfstr_attr_name)); this attribute name might not exist")
     return ptr
 end
 
@@ -154,10 +165,14 @@ Given the length of a string and its encoding type, return the maximum length of
 
 [1]: https://developer.apple.com/documentation/corefoundation/1542143-cfstringgetmaximumsizeforencodin
 """
-function _cfstring_get_maximum_size_for_encoding(strlen::T, encoding::Unsigned = CF_STRING_ENCODING) where {T <: Integer}
+function _cfstring_get_maximum_size_for_encoding(
+    strlen::T, encoding::Unsigned = CF_STRING_ENCODING
+) where {T <: Integer}
     # https://developer.apple.com/documentation/corefoundation/1542143-cfstringgetmaximumsizeforencodin
     # CFIndex CFStringGetMaximumSizeForEncoding(CFIndex length, CFStringEncoding encoding);
-    return ccall(:CFStringGetMaximumSizeForEncoding, Int32, (Int32, UInt32), strlen, encoding)
+    return ccall(
+        :CFStringGetMaximumSizeForEncoding, Int32, (Int32, UInt32), strlen, encoding
+    )
 end
 
 """

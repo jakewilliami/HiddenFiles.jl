@@ -1,8 +1,6 @@
 module HiddenFiles
 
-
 export ishidden
-
 
 """
 ```julia
@@ -36,7 +34,6 @@ ishidden
 include("docs.jl")
 include("path.jl")
 
-
 @static if Sys.isunix()
     include("utils/zfs.jl")
     if iszfs()  # @static breaks here # ZFS
@@ -49,7 +46,8 @@ include("path.jl")
     _isdotfile(f::AbstractString) = startswith(basename(f), '.')
 
     # Check dotfiles, but also account for ZFS
-    _ishidden_unix(ps::PathStruct) = _isdotfile(ps.realpath) || (iszfs() && _ishidden_zfs(ps))
+    _ishidden_unix(ps::PathStruct) =
+        _isdotfile(ps.realpath) || (iszfs() && _ishidden_zfs(ps))
 
     @static if Sys.isbsd()  # BDS-related; this is true for macOS as well
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html
@@ -76,7 +74,8 @@ include("path.jl")
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
         _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
 
-        _ishidden_bsd_related(ps::PathStruct) = _ishidden_unix(ps) || _isinvisible(ps.realpath)
+        _ishidden_bsd_related(ps::PathStruct) =
+            _ishidden_unix(ps) || _isinvisible(ps.realpath)
     end
 
     @static if Sys.isapple()  # macOS/Darwin
@@ -91,7 +90,6 @@ include("path.jl")
         # scripts and other special types of files and directories.  Two special directories
         # in this category are the `.` and `..` directories, which are references to the
         # current and parent directories respectively.  This case is handled by _ishidden_unix
-
 
         #=== Case 2: UNIX-specific directories ===#
         # The directories in this category are inherited from traditional UNIX installations.
@@ -112,7 +110,6 @@ include("path.jl")
         # TODO
         _issystemfile(f::AbstractString) = false
 
-
         #=== Case 3: Explicitly hidden files and directories ===#
         # The Finder may hide specific files or directories that should not be accessed
         # directly by the user.  The most notable example of this is the /Volumes directory,
@@ -121,7 +118,6 @@ include("path.jl")
         # accessing local disks.)  In macOS 10.7 and later, the Finder also hides the
         # `~/Library` directory—that is, the `Library` directory located in the user’s
         # home directory.  This case is handled by `_isinvisible`.
-
 
         #=== Case 4: Packages and bundles ===#
         # Packages and bundles are directories that the Finder presents to the user as if
@@ -139,7 +135,9 @@ include("path.jl")
         # https://github.com/osquery/osquery/blob/598983db97459f858e7a9cc5c731409ffc089b48/osquery/tables/system/darwin/extended_attributes.cpp#L111-L144
         # https://github.com/objective-see/ProcInfo/blob/ec51090fcf741a9e045dd3e5119cb5cc8750efd3/procInfo/Binary.m#L121-L172
         # NOTE: this function will fail if you give it f as "/"
-        function _k_mditem_content_type_tree(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING)
+        function _k_mditem_content_type_tree(
+            f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING
+        )
             cfstr = _cfstring_create_with_cstring(f, str_encoding)
             mditem = _mditem_create(cfstr)
             mdattrs = _mditem_copy_attribute(mditem, K_MDITEM_CONTENT_TYPE_TREE)
@@ -159,8 +157,11 @@ include("path.jl")
         # https://stackoverflow.com/a/12233785
         # Bundles: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html
         # Packages: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/DocumentPackages/DocumentPackages.html
-        const PKG_BUNDLE_TYPES = ("com.apple.package", "com.apple.bundle", "com.apple.application-bundle")
-        _ispackage_or_bundle(f::AbstractString) = any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
+        const PKG_BUNDLE_TYPES = (
+            "com.apple.package", "com.apple.bundle", "com.apple.application-bundle"
+        )
+        _ispackage_or_bundle(f::AbstractString) =
+            any(t ∈ PKG_BUNDLE_TYPES for t in _k_mditem_content_type_tree(f))
 
         # If a file or directory exists inside a package or bundle, then it is hidden.
         # Packages or bundles themselves are not necessarily hidden.
@@ -181,9 +182,11 @@ include("path.jl")
             return false
         end
 
-
         #=== All macOS cases ===#
-        _ishidden_macos(ps::PathStruct) = _ishidden_bsd_related(ps) || _issystemfile(ps.path) || _exists_inside_package_or_bundle(ps.realpath)
+        _ishidden_macos(ps::PathStruct) =
+            _ishidden_bsd_related(ps) ||
+            _issystemfile(ps.path) ||
+            _exists_inside_package_or_bundle(ps.realpath)
         _ishidden = _ishidden_macos
     elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
         _ishidden_bsd(ps::PathStruct) = _ishidden_bsd_related(ps)
@@ -212,10 +215,8 @@ else
     _ishidden(f::AbstractString) = error("hidden files for this OS need to be defined")
 end
 
-
 # Check if the file is actually a directory reference to the current or parent directory
 _isdirref(f::AbstractString) = basename(f) ∈ (".", "..")  # see issue #24
-
 
 # Each OS branch defines its own _ishidden function.  In the main ishidden function,
 # we check construct our PathStruct object to pass around to the branch's _ishidden
@@ -224,6 +225,5 @@ function ishidden(f::AbstractString)
     ps = PathStruct(f; err_prefix = :ishidden)
     return _isdirref(ps.path) || _ishidden(ps)
 end
-
 
 end  # end module
