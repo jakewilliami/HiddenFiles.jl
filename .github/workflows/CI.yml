@@ -36,25 +36,13 @@ jobs:
           - os: macOS-latest
             arch: x86
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
-      - run: |
-          git config --global user.name Tester
-          git config --global user.email te@st.er
       - uses: julia-actions/julia-runtest@latest
 
   docs:
@@ -63,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
-      - uses: extractions/setup-just@v1  # or taiki-e/install-action@just
+      - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
       - run: |
           just docs
         env:
@@ -75,7 +63,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
-      - uses: extractions/setup-just@v1  # or taiki-e/install-action@just
+      - uses: extractions/setup-just@v2  # or taiki-e/install-action@just
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install
 
       # Adapted from:
       #   github.com/FluxML/Flux.jl/blob/7be1ca7a/.github/workflows/JuliaFormatter.yml
@@ -83,12 +73,10 @@ jobs:
         id: filter
         with:
           filters: |
-            julia_file_change:
-              - added|modified: '**/*.jl'
-      - name: Apply JuliaFormatter
-        run: |
-          just fmt
+            file_change:
+              - added|modified: '**/*'
+        run: just fmt
       - name: Check formatting diff
-        if: steps.filter.outputs.julia_file_change == 'true'
+        if: steps.filter.outputs.file_change == 'true'
         run: |
           git diff --color=always --exit-code
