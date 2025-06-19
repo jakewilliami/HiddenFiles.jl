@@ -23,6 +23,29 @@ true
 
 The origin of this project comes from [`julia#38841`](https://github.com/JuliaLang/julia/issues/38841).
 
+## Development
+
+Ensure you have both [UV](https://github.com/astral-sh/uv) and [Just](https://github.com/casey/just).
+
+To run unit tests, simply run:
+
+```commandline
+$ just test
+# ...
+```
+
+We use UV to conveniently run pre-commit:
+
+```commandline
+$ just fmt
+```
+
+In order to commit, you will want to ensure pre-commits are installed:
+
+```commandline
+$ uvx pre-commit install
+```
+
 ## Citation
 
 If your research depends on HiddenFiles.jl, please consider giving us a formal citation: [`citation.bib`](./citation.bib).

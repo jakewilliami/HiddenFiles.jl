@@ -33,20 +33,18 @@ run run_file:
     julia --project={{project_dir}} {{run_file}}
 
 # Generate documentation
-[group: 'ci']
 docs: (instantiate-dev docs_dir)
     julia --project={{docs_dir}} {{docs_mk_file}}
 
 # Benchmark performance
-[group: 'ci']
 bench: (instantiate-dev bench_dir)
     julia --project={{bench_dir}} {{bench_file}}
 
 # Check formatting with blue style
-[group: 'ci']
 fmt: install-formatter
     # https://github.com/invenia/BlueStyle
     julia --project=@JuliaFormatter -e 'using JuliaFormatter; format("{{project_dir}}", style=BlueStyle())'
+    uvx pre-commit run --all-files
 
 # Install JuliaFormatter
 [private]
@@ -61,4 +59,3 @@ instantiate:
 [private]
 instantiate-dev dev_project_dir:
     julia --project={{dev_project_dir}} -e '{{dev_instantiate_code}}'
-
