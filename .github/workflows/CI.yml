@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
       - uses: extractions/setup-just@v1  # or taiki-e/install-action@just
-      
+
       # Adapted from:
       #   github.com/FluxML/Flux.jl/blob/7be1ca7a/.github/workflows/JuliaFormatter.yml
       - uses: dorny/paths-filter@v3

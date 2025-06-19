@@ -20,4 +20,3 @@ Pkg.add("HiddenFiles")
 ```@docs
 ishidden
 ```
-
