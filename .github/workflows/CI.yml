@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
-      - uses: extractions/setup-just@v2  # or taiki-e/install-action@just
+      - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
       - uses: astral-sh/setup-uv@v6
       - run: uv python install
 
