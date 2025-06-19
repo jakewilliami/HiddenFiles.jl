@@ -63,7 +63,7 @@ include("path.jl")
 
             # int stat(const char *restrict path, struct stat *restrict buf);
             # int stat(const char * restrict path, struct stat * restrict sb);
-            i = ccall(:jl_stat, Int32, (Cstring, Ptr{Cvoid}), f, statbuf)
+            i = ccall(:jl_stat, Int32, (Cstring,Ptr{Cvoid}), f, statbuf)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
 
             # st_flags offset is at index 11, or 21 in 32-bit
