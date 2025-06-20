@@ -55,19 +55,49 @@ include("path.jl")
         # https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2
         const UF_HIDDEN = 0x00008000
 
+        struct BSDTimeSpec
+            sec::Int64
+            nsec::Int64
+        end
+
+        # See HiddenFiles.jl#14
+        struct BSDStatStruct
+            st_dev::UInt64
+            st_mode::UInt64
+            st_nlink::UInt64
+            st_uid::UInt64
+            st_gid::UInt64
+            st_rdev::UInt64
+            st_ino::UInt64
+            st_size::UInt64
+            st_blksize::UInt64
+            st_blocks::UInt64
+            st_flags::UInt64
+            st_gen::UInt64
+            st_atime::BSDTimeSpec
+            st_mtim::BSDTimeSpec
+            st_ctim::BSDTimeSpec
+            st_birthtim::BSDTimeSpec
+
+            # https://discourse.julialang.org/t/106893/6
+            # https://discourse.julialang.org/t/75835/6
+            # BSDStatStruct() = new()
+        end
+
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat.2.html
         # http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t
-        const ST_FLAGS_STAT_OFFSET = 0x15
+        # https://discourse.julialang.org/t/75835/5
+        #
+        # See previous version of _st_flags at f149f1a
         function _st_flags(f::AbstractString)
-            statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-
+            # Note: sizeof(BSDStatStruct) must equal ccall(:jl_sizeof_stat, Int32, ())
+            stat_t_ref = Ref{BSDStatStruct}()
             # int stat(const char *restrict path, struct stat *restrict buf);
             # int stat(const char * restrict path, struct stat * restrict sb);
-            i = ccall(:jl_stat, Int32, (Cstring, Ptr{Cvoid}), f, statbuf)
+            i = ccall(:jl_lstat, Cvoid, (Cstring, Ptr{BSDStatStruct}), f, stat_t_ref)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
-
-            # st_flags offset is at index 11, or 21 in 32-bit
-            return statbuf[ST_FLAGS_STAT_OFFSET]
+            stat_t = stat_t_ref.x
+            return stat_t.st_flags
         end
 
         # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
