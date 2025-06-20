@@ -1,3 +1,7 @@
+# TODO: consider using ObjectiveC.jl  (HiddenFiles.jl#8)
+#   https://discourse.julialang.org/t/95862
+#   https://github.com/JuliaInterop/ObjectiveC.jl
+
 # https://opensource.apple.com/source/CF/CF-635/CFString.h.auto.html
 # https://developer.apple.com/documentation/corefoundation/cfstringbuiltinencodings
 const K_CF_STRING_ENCODING_MAC_ROMAN = 0x0
