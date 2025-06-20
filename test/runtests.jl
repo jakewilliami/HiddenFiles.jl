@@ -34,8 +34,8 @@ using Test
                 @test HiddenFiles.ishidden("/etc")
                 @test HiddenFiles.ishidden("/sbin")
                 @test HiddenFiles.ishidden("/sbin")
-                @test HiddenFiles.ishidden("/tmp")
-                # @test !HiddenFiles.ishidden("/tmp/")  # Is this hidden or not?  See ec15fd77
+                @test HiddenFiles.ishidden("/tmp")  # This expands to /private/tmp, but /private is hidden which means /tmp should also be hidden (see 54ced37c)
+                @test HiddenFiles.ishidden("/private")
                 @test HiddenFiles.ishidden("/usr")
                 @test HiddenFiles.ishidden("/var")
                 @test HiddenFiles._isinvisible_macos_item_info("/bin")
