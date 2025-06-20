@@ -1,12 +1,17 @@
 name: CI
 # Run on master, tags, or any pull request
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC (8 PM CST)
   push:
-    branches: [master]
-    tags: ["*"]
+    branches:
+      - master
+    tags: ['*']
   pull_request:
+  workflow_dispatch:
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
@@ -19,57 +24,91 @@ jobs:
           - "1.6"       # Recent LTS
           - "nightly"   # Latest Release
         os:
-          - ubuntu-latest
-          - macOS-latest
-          - windows-latest
-          # - freebsd-latest  # CirrusCI.jl is currently (Sept., 2022) required to test with FreeBSB
+          # Historical releases
+          #   - github.com/actions/runner-images#available-images)
+          #   - docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+
+          ## Ubuntu
+          # releases.ubuntu.com
+          - ubuntu-22.04        # LTS version at time of writing (June, 2025)
+          - ubuntu-24.04        # LTS version at time of writing (June, 2025)
+          # - ubuntu-24.04-arm  # ARM
+          - ubuntu-latest       # Latest build available via GitHub runners
+
+          ## macOS
+          # wikipedia.org/wiki/MacOS_version_history#Releases
+          - macOS-13           # Supported at time of writing (June, 2025)
+          # - macOS-13-xlarge  # ARM
+          - macOS-14           # Supported at time of writing (June, 2025)
+          # - macOS-14-xlarge  # ARM
+          - macOS-15           # Latest version at time of writing (June, 2025)
+          # - macOS-15-xlarge  # ARM
+          - macOS-latest       # Latest build available via GitHub runners
+
+          ## Windows
+          - windows-2019      # Windows Server
+          - windows-2022      # Windows Server
+          - windows-2025      # Windows Server
+          # - windows-11-arm  # ARM
+          - windows-latest    # Latest build available via GitHub runners
+
+          ## FreeBSD
+          # - freebsd-latest  # CirrusCI.jl is currently (Sept., 2022) required to test with FreeBSB; see .cirrus.yml
         arch:
           - x64
           - x86 # 32-bit; i686
         exclude:
           # 32-bit Julia binaries are not available on macOS
+          - os: macOS-13
+            arch: x86
+          - os: macOS-14
+            arch: x86
+          - os: macOS-15
+            arch: x86
           - os: macOS-latest
             arch: x86
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
-      - run: |
-          git config --global user.name Tester
-          git config --global user.email te@st.er
       - uses: julia-actions/julia-runtest@latest
 
   docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: '1'
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@latest
+      - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
       - run: |
-          git config --global user.name name
-          git config --global user.email email
-          git config --global github.user username
-      - run: |
-          julia --project=docs -e '
-            using Pkg;
-            Pkg.develop(PackageSpec(path=pwd()));
-            Pkg.instantiate();'
-      - run: julia --project=docs docs/make.jl
+          just docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@latest
+      - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install
+
+      # Adapted from:
+      #   github.com/FluxML/Flux.jl/blob/7be1ca7a/.github/workflows/JuliaFormatter.yml
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            file_change:
+              - added|modified: '**/*'
+      - run: just fmt
+      - name: Check formatting diff
+        if: steps.filter.outputs.file_change == 'true'
+        run: |
+          git diff --color=always --exit-code

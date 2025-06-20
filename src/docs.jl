@@ -1,9 +1,11 @@
 """
 ```julia
-_ishidden(f::AbstractString) -> Bool
+_ishidden(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 An alias for your system's internal `_ishidden_*` function.
+
+This function also takes an expanded real path, as some internal functions neccesitate a real path.
 
 The reason this is still an internal function is because the main [`ishidden`](@ref) function also checks the validity of the path, so that all internal functions can assume that the path exists.
 
@@ -18,7 +20,6 @@ iszfs
 "This function is not yet implemented"
 _ishidden_zfs
 
-
 ### General Unix ###
 
 """
@@ -27,20 +28,25 @@ _isdotfile(f::AbstractString) -> Bool
 ```
 
 Determines if a file or directory is hidden from ordinary directory listings by checking if it starts with a full stop/period (`U+002E`).
+
+!!! note
+    This function expects the path given to be a normalised/real path, so that the base name of the path can be correctly assessed.
 """
 _isdotfile
 
 """
 ```julia
-_ishidden_unix(f::AbstractString) -> Bool
+_ishidden_unix(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 Determines if a file or directory is hidden from ordinary directory listings by checking if it starts with a full stop/period, or if it is a ZFS mount point on operating systems with a Unix-like interface.
 
 See also: [`_isdotfile`](@ref), [`_ishidden_zfs`](@ref).
+
+!!! note
+    This function expects the path given to be a normalised/real path, so that the base name of the path can be correctly assessed.
 """
 _ishidden_unix
-
 
 ### macOS/BSD ###
 
@@ -51,7 +57,7 @@ const UF_HIDDEN = 0x00008000
 
 The flag on macOS or BSD systems specifying whether the file may be hidden from directory.
 
-See `chflags`:    
+See `chflags`:
   - [macOS](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chflags.2.html)
   - [BSD](https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2)
 """
@@ -88,12 +94,15 @@ _isinvisible(f::AbstractString) -> Bool
 Determines if the specified file or directory is invisible/hidden, as defined by the Finder flags for the path.
 
 See also: [`_st_flags`](@ref), [`UF_HIDDEN`](@ref).
+
+!!! note
+    This function expects that the file given to it is its real path.
 """
 _isinvisible
 
 """
 ```julia
-_ishidden_bsd_related(f::AbstractString) -> Bool
+_ishidden_bsd_related(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 Determines if a file or directory on a BSD-related system (i.e., macOS or BSD) is hidden from ordinary directory listings, as defined either by the Unix standard, or by user-defined flags.
@@ -101,7 +110,6 @@ Determines if a file or directory on a BSD-related system (i.e., macOS or BSD) i
 See also: [`_ishidden_unix`](@ref), [`isinvisible`](@ref).
 """
 _ishidden_bsd_related
-
 
 ### macOS ###
 
@@ -154,12 +162,15 @@ _exists_inside_package_or_bundle(f::AbstractString) -> Bool
 Determines whether the given path exists inside a package or bundle on macOS.  If it does, the path will be considered hidden.
 
 See also: [`_ispackage_or_bundle`](@ref), [`_ishidden_macos`](@ref)
+
+!!! note
+    This function necessitates/expects that the file given to it is its real path, as it is possible that the file provided has a trailing slash, meaning the first "parent" this function will check is itself.  This also makes relative paths much simpler to work with.
 """
 _exists_inside_package_or_bundle
 
 """
 ```julia
-_ishidden_macos(f::AbstractString) -> Bool
+_ishidden_macos(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 Determines if the specified file or directory on macOS is hidden from ordinary directory listings.  There are a few conditions this function needs to check:
@@ -177,12 +188,11 @@ See also: [`_ishidden_unix`](@ref), [`_ishidden_bsd_related`](@ref), [`_isinvisi
 """
 _ishidden_macos
 
-
 ### BSD ###
 
 """
 ```julia
-_ishidden_bsd(f::AbstractString) -> Bool
+_ishidden_bsd(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 Determines if the specified file or directory is hidden from ordinary directory listings by checking the following conditions:
@@ -195,7 +205,6 @@ The file is considered hidden if any of these questions are true.
 See also: [`_ishidden_unix`](@ref), [`_ishidden_bsd_related`](@ref), [`_isinvisible`](@ref), [`_ishidden_zfs`](@ref).
 """
 _ishidden_bsd
-
 
 ### Windows ###
 
@@ -219,10 +228,12 @@ FILE_ATTRIBUTE_SYSTEM
 
 """
 ```julia
-_ishidden_windows(f::AbstractString) -> Bool
+_ishidden_windows(f::AbstractString, rp::AbstractString) -> Bool
 ```
 
 Determine if the specified file or directory is hidden from ordinary directory listings for operating systems that are derivations of Microsoft Windows NT.
+
+!!! note
+    This function necessitates/expects that the file given to it is its real path.
 """
 _ishidden_windows
-
