@@ -55,27 +55,56 @@ include("path.jl")
         # https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2
         const UF_HIDDEN = 0x00008000
 
+        struct BSDTimeSpec
+            sec::Int64
+            nsec::Int64
+        end
+
+        # See HiddenFiles.jl#14
+        struct BSDStatStruct
+            st_dev::UInt64
+            st_mode::UInt64
+            st_nlink::UInt64
+            st_uid::UInt64
+            st_gid::UInt64
+            st_rdev::UInt64
+            st_ino::UInt64
+            st_size::UInt64
+            st_blksize::UInt64
+            st_blocks::UInt64
+            st_flags::UInt64
+            st_gen::UInt64
+            st_atime::BSDTimeSpec
+            st_mtim::BSDTimeSpec
+            st_ctim::BSDTimeSpec
+            st_birthtim::BSDTimeSpec
+
+            # https://discourse.julialang.org/t/106893/6
+            # https://discourse.julialang.org/t/75835/6
+            # BSDStatStruct() = new()
+        end
+
         # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/stat.2.html
         # http://docs.libuv.org/en/v1.x/fs.html#c.uv_stat_t
-        const ST_FLAGS_STAT_OFFSET = 0x15
+        # https://discourse.julialang.org/t/75835/5
+        #
+        # See previous version of _st_flags at f149f1a
         function _st_flags(f::AbstractString)
-            statbuf = Vector{UInt32}(undef, ccall(:jl_sizeof_stat, Int32, ()))
-
+            # Note: sizeof(BSDStatStruct) must equal ccall(:jl_sizeof_stat, Int32, ())
+            stat_t_ref = Ref{BSDStatStruct}()
             # int stat(const char *restrict path, struct stat *restrict buf);
             # int stat(const char * restrict path, struct stat * restrict sb);
-            i = ccall(:jl_stat, Int32, (Cstring, Ptr{Cvoid}), f, statbuf)
+            i = ccall(:jl_lstat, Int32, (Cstring, Ptr{BSDStatStruct}), f, stat_t_ref)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
-
-            # st_flags offset is at index 11, or 21 in 32-bit
-            return statbuf[ST_FLAGS_STAT_OFFSET]
+            stat_t = stat_t_ref.x
+            return stat_t.st_flags
         end
 
         # https://github.com/dotnet/runtime/blob/5992145db2cb57956ee444aa0f0c2f3f85ee3673/src/native/libs/System.Native/pal_io.c#L219
         # https://github.com/davidkaya/corefx/blob/4fd3d39f831f3e14f311b0cdc0a33d662e684a9c/src/System.IO.FileSystem/src/System/IO/FileStatus.Unix.cs#L88
-        _isinvisible(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
-
-        _ishidden_bsd_related(ps::PathStruct) =
-            _ishidden_unix(ps) || _isinvisible(ps.realpath)
+        _isinvisible_st_flags(f::AbstractString) = (_st_flags(f) & UF_HIDDEN) == UF_HIDDEN
+        _isinvisible_st_flags(ps::PathStruct) = _isinvisible_st_flags(ps.realpath)
+        _ishidden_bsd_related(ps::PathStruct) = _ishidden_unix(ps) || _isinvisible_st_flags(ps)
     end
 
     @static if Sys.isapple()  # macOS/Darwin
@@ -108,7 +137,18 @@ include("path.jl")
         #   - `/var`—Contains log files and other files whose content is variable. (Log
         #            files are typically viewed using the Console app.)
         # TODO
-        _issystemfile(f::AbstractString) = false
+        _issystemdir(f::AbstractString) = false
+        _issystemdir(ps::PathStruct) = _issystemdir(ps.realpath)
+
+        # This _isinvisible function seems to capture some cases (e.g., `/tmp`) that the other _isinvisible function does not
+        function _isinvisible_macos_item_info(f::AbstractString, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE)
+            cfstr = _cfstring_create_with_cstring(f, str_encoding)
+            url_ref = _cf_url_create_with_file_system_path(cfstr, isdir(f))
+            item_info = _ls_copy_item_info_for_url(url_ref, K_IS_INVISIBLE)
+            return !iszero(item_info[1] & K_IS_INVISIBLE)
+        end
+        _isinvisible_macos_item_info(ps::PathStruct, str_encoding::Unsigned = CF_STRING_ENCODING, path_style::Integer = K_CF_URL_POSIX_PATH_STYLE) =
+            _isinvisible_macos_item_info(ps.realpath, str_encoding, path_style)
 
         #=== Case 3: Explicitly hidden files and directories ===#
         # The Finder may hide specific files or directories that should not be accessed
@@ -117,7 +157,9 @@ include("path.jl")
         # from the command line.  (The Finder provides a different user interface for
         # accessing local disks.)  In macOS 10.7 and later, the Finder also hides the
         # `~/Library` directory—that is, the `Library` directory located in the user’s
-        # home directory.  This case is handled by `_isinvisible`.
+        # home directory.
+        #
+        # This case is handled by `_isinvisible_st_flags`.
 
         #=== Case 4: Packages and bundles ===#
         # Packages and bundles are directories that the Finder presents to the user as if
@@ -181,12 +223,15 @@ include("path.jl")
             end
             return false
         end
+        _exists_inside_package_or_bundle(ps::PathStruct) =
+            _exists_inside_package_or_bundle(ps.realpath)
 
         #=== All macOS cases ===#
         _ishidden_macos(ps::PathStruct) =
             _ishidden_bsd_related(ps) ||
-            _issystemfile(ps.path) ||
-            _exists_inside_package_or_bundle(ps.realpath)
+            _issystemdir(ps) ||
+            _isinvisible_macos_item_info(ps) ||
+            _exists_inside_package_or_bundle(ps)
         _ishidden = _ishidden_macos
     elseif Sys.isbsd()  # BSD; this excludes macOS through control flow (as macOS is checked for first)
         _ishidden_bsd(ps::PathStruct) = _ishidden_bsd_related(ps)
