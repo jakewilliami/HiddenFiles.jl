@@ -94,7 +94,7 @@ include("path.jl")
             stat_t_ref = Ref{BSDStatStruct}()
             # int stat(const char *restrict path, struct stat *restrict buf);
             # int stat(const char * restrict path, struct stat * restrict sb);
-            i = ccall(:jl_lstat, Cvoid, (Cstring, Ptr{BSDStatStruct}), f, stat_t_ref)
+            i = ccall(:jl_lstat, Int32, (Cstring, Ptr{BSDStatStruct}), f, stat_t_ref)
             iszero(i) || Base.uv_error("_st_flags($(repr(f)))", i)
             stat_t = stat_t_ref.x
             return stat_t.st_flags
