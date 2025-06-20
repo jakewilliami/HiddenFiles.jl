@@ -218,7 +218,7 @@ end
 const KLS_ITEM_INFO_IS_INVISIBLE = 0x00000040
 
 # https://developer.apple.com/documentation/coreservices/1429609-anonymous/kisinvisible
-const K_IS_INVISIBLE = 0x00000040
+const K_IS_INVISIBLE = 0x4000
 
 # https://developer.apple.com/documentation/corefoundation/cfurlpathstyle
 const K_CF_URL_POSIX_PATH_STYLE = zero(Int8)
