@@ -21,7 +21,7 @@ true
 
 ## History
 
-The origin of this project comes from [`julia#38841`](https://github.com/JuliaLang/julia/issues/38841).
+The origin of this project comes from a requirement for this functionality in [`julia#38841`](https://github.com/JuliaLang/julia/issues/38841).  There is also a [Python-specific question for this functionality](https://stackoverflow.com/q/284115) which [I have answered](https://stackoverflow.com/a/79672944).
 
 ## Development
 
