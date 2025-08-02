@@ -29,20 +29,20 @@ Ensure you have both [UV](https://github.com/astral-sh/uv) and [Just](https://gi
 
 To run unit tests, simply run:
 
-```commandline
+```shell
 $ just test
 # ...
 ```
 
 We use UV to conveniently run pre-commit:
 
-```commandline
+```shell
 $ just fmt
 ```
 
 In order to commit, you will want to ensure pre-commits are installed:
 
-```commandline
+```shell
 $ uvx pre-commit install
 ```
 
