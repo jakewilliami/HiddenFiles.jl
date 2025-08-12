@@ -68,7 +68,7 @@ jobs:
           - os: macOS-latest
             arch: x86
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
@@ -81,7 +81,7 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
       - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
       - run: |
@@ -93,7 +93,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@latest
       - uses: extractions/setup-just@v3  # or taiki-e/install-action@just
       - uses: astral-sh/setup-uv@v6
